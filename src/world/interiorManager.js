@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { FISH_LIST, BUG_LIST, REPTILE_LIST, CREATURE_MAP } from '../data/creatures.js';
 import { FURNITURE_MAP, HOUSE_TIERS } from '../data/shopItems.js';
 import { buildFurnitureMesh, buildCreatureModel } from './furnitureBuilder.js';
+import { renderCreatureIcon } from '../ui/creatureIcons.js';
 
 export class InteriorManager {
   constructor(scene, labelsContainer) {
@@ -655,7 +656,11 @@ export class InteriorManager {
         const rec = store.state.museum[nearestExhibit.creature.id];
         const ev = nearestExhibit.mesh.position.clone().add(new THREE.Vector3(0, 1.0, 0)).project(camera);
         if (ev.z <= 1) {
-          this.exhibitLabel.textContent = `${nearestExhibit.creature.icon} ${nearestExhibit.creature.name} (${rec?.size || '?'} cm)`;
+          const labelKey = `${nearestExhibit.creature.id}|${rec?.size || '?'}`;
+          if (this._lastExhibitLabelKey !== labelKey) {
+            this._lastExhibitLabelKey = labelKey;
+            this.exhibitLabel.innerHTML = `${renderCreatureIcon(nearestExhibit.creature, { size: 22, inline: true })}<span>${nearestExhibit.creature.name} (${rec?.size || '?'} cm)</span>`;
+          }
           this.exhibitLabel.style.left = `${(ev.x * 0.5 + 0.5) * w}px`;
           this.exhibitLabel.style.top = `${(-ev.y * 0.5 + 0.5) * h}px`;
           this.exhibitLabel.style.opacity = '1';

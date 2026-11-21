@@ -18,6 +18,7 @@ import {
 } from '../data/shopItems.js';
 import { ISLANDS, ISLAND_MAP } from '../data/islands.js';
 import { NPCS } from '../data/npcs.js';
+import { renderCreatureIcon } from './creatureIcons.js';
 
 export class ModalManager {
   constructor({
@@ -118,7 +119,7 @@ export class ModalManager {
     if (isNew) this.catchNew.textContent = '✨ 新登錄圖鑑！可捐贈博物館！';
     else if (isRecord) this.catchNew.textContent = '🏆 刷新體長紀錄！';
 
-    this.catchIcon.textContent = creature.icon;
+    this.catchIcon.innerHTML = renderCreatureIcon(creature, { size: 78, className: 'catch-svg-wrap' });
     this.catchRarity.textContent = formatRarity(creature.rarity);
     this.catchName.textContent = creature.name;
     const val = this.store.getSellPrice(creature.id);
@@ -258,7 +259,7 @@ export class ModalManager {
           html += `
             <div class="list-row">
               <div class="list-row-left">
-                <span class="card-emoji">${c.icon}</span>
+                ${renderCreatureIcon(c, { size: 38 })}
                 <div>
                   <div class="card-title">${c.name} <span style="color:#d48a1c;font-size:12px">${formatRarity(c.rarity)}</span>${tag}</div>
                   <div class="card-sub">體長 ${item.size} cm</div>
@@ -700,7 +701,7 @@ export class ModalManager {
           html += `
             <div class="list-row">
               <div class="list-row-left">
-                <span class="card-emoji">${c.icon}</span>
+                ${renderCreatureIcon(c, { size: 38 })}
                 <div>
                   <div class="card-title">${c.name} <span style="color:#d48a1c;font-size:12px">${formatRarity(c.rarity)}</span></div>
                   <div class="card-sub">體長 ${item.size} cm ・ 研究津貼 +${bonus} 🪙</div>
@@ -804,7 +805,7 @@ export class ModalManager {
         html += `
           <div class="list-row">
             <div class="list-row-left">
-              <span class="card-emoji">${c.icon}</span>
+              ${renderCreatureIcon(c, { size: 38 })}
               <div>
                 <div class="card-title">${c.name} <span style="color:#d48a1c;font-size:12px">${formatRarity(c.rarity)}</span>${tag}</div>
                 <div class="card-sub">體長 ${item.size} cm ・ 雜貨店估價 ${this.store.getSellPrice(item.id)} 🪙</div>
@@ -867,7 +868,7 @@ export class ModalManager {
         html += `
           <div class="card-item">
             <div class="card-item-top">
-              <span class="card-emoji">${c.icon}</span>
+              ${renderCreatureIcon(c, { size: 46, className: 'dex-icon' })}
               <div>
                 <div class="card-title">${c.name}${musBadge}</div>
                 <div style="color:#d48a1c;font-size:11px">${formatRarity(c.rarity)}</div>
@@ -891,7 +892,7 @@ export class ModalManager {
         html += `
           <div class="card-item locked">
             <div class="card-item-top">
-              <span class="card-emoji silhouette">${c.icon}</span>
+              ${renderCreatureIcon(c, { size: 46, silhouette: true, className: 'dex-icon' })}
               <div>
                 <div class="card-title">${unlocked ? '？？？' : '🔒 未解鎖稀有種'}</div>
                 <div style="color:#a8967c;font-size:11px">${formatRarity(c.rarity)}</div>

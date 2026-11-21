@@ -9,6 +9,7 @@ import {
   rollCreatureSize
 } from '../data/creatures.js';
 import { buildCreatureModel } from '../world/furnitureBuilder.js';
+import { renderCreatureIcon } from '../ui/creatureIcons.js';
 
 export class BugSystem {
   constructor(root, labelsContainer) {
@@ -199,7 +200,7 @@ export class BugSystem {
     this.timingMaxTime = Math.max(1.85, 3.1 - (rarity - 1) * 0.24 + (netLevel - 1) * 0.35);
 
     if (this.uiOverlay) {
-      this.uiTitle.textContent = `${target.creature.icon} 鎖定「${target.creature.name}」！抓準綠區按揮網！`;
+      this.uiTitle.innerHTML = `${renderCreatureIcon(target.creature, { size: 24, inline: true })} 鎖定「${target.creature.name}」！抓準綠區按揮網！`;
       this.uiZone.style.left = `${(this.zoneCenter - this.zoneWidth / 2) * 100}%`;
       this.uiZone.style.width = `${this.zoneWidth * 100}%`;
       this.uiCursor.style.left = `${this.cursorPos * 100}%`;

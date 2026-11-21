@@ -1109,10 +1109,63 @@ html, body {
 .card-emoji {
   font-size: 28px;
   line-height: 1;
+  flex-shrink: 0;
 }
 
 .card-emoji.silhouette {
   filter: brightness(0) opacity(0.28);
+}
+
+.creature-icon-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 12px;
+  background: radial-gradient(circle at 50% 45%, #fffaf0 0%, #f5e9d3 100%);
+  border: 1.5px solid #ead8b8;
+  padding: 2px;
+  box-sizing: border-box;
+}
+
+.creature-icon-wrap.dex-icon {
+  border-radius: 14px;
+  padding: 3px;
+}
+
+.creature-icon-wrap.catch-svg-wrap {
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+.creature-icon-wrap.silhouette {
+  background: rgba(140, 122, 98, 0.14);
+  border-color: rgba(140, 122, 98, 0.22);
+}
+
+.creature-icon-wrap.silhouette .creature-svg {
+  filter: brightness(0) opacity(0.32);
+}
+
+.creature-icon-wrap.silhouette .svg-glow {
+  display: none;
+}
+
+.creature-icon-inline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  margin-right: 3px;
+  flex-shrink: 0;
+}
+
+.creature-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .card-title {
