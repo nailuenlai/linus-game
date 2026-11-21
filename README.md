@@ -23,10 +23,9 @@
 - **手機／平板**：左下角虛擬搖桿移動或開船、右下角情境按鈕互動／釣魚／抓蟲／登船，手指滑動畫面旋轉視角。
 - **電腦**：`WASD` 或方向鍵移動、`空白鍵 / E` 主要動作、`F` 登船／上岸、`1 / 2 / 3` 切換工具、`B` 背包、`N` 圖鑑、`Q` 任務、`M` 航海地圖，滑鼠拖曳旋轉視角。
 
-## 🚀 部署至 GitHub Pages
+## 🚀 自動部署至 GitHub Pages
 
-本專案採用純靜態 HTML / CSS / ES Modules，無須編譯打包：
+本專案已內建 GitHub Actions 工作流程（`.github/workflows/deploy-pages.yml`）：
 
-1. 將檔案推送至 GitHub 儲存庫的 `main` 分支。
-2. 開啟儲存庫的 **Settings → Pages**。
-3. **Source** 選擇 **Deploy from a branch**，分支選擇 `main`、資料夾選擇 `/ (root)`，點擊 **Save** 即可遊玩！
+- 每次推送（`push`）至 `main` 分支時，會自動執行 JavaScript 語法檢查、打包靜態檔案並部署至 GitHub Pages。
+- 也可於 GitHub 儲存庫的 **Actions → Deploy to GitHub Pages** 手動點擊 **Run workflow** 觸發重新部署。
