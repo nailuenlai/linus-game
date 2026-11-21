@@ -5,6 +5,7 @@ export class InputSystem {
     this.cameraYaw = 0;
     this.cameraPitch = 0.62; // cozy angled top-down
     this.isPrimaryHeld = false;
+    this.primaryPointerId = null;
     this.sneakToggle = false;
 
     this.keys = new Set();
@@ -18,6 +19,9 @@ export class InputSystem {
     this.dragLastX = 0;
     this.dragLastY = 0;
 
+    this.primaryBtn = primaryBtn;
+    this.secondaryBtn = secondaryBtn;
+
     this.callbacks = {
       onPrimaryDown: () => {},
       onPrimaryUp: () => {},
@@ -26,10 +30,12 @@ export class InputSystem {
       onShortcut: () => {}
     };
 
+    this._bindGlobalTouchGuard();
     this._bindJoystick(joystickZone, joystickKnob);
     this._bindCameraDrag(canvasContainer);
     this._bindActionButtons(primaryBtn, secondaryBtn);
     this._bindKeyboard();
+    this._bindLifecycleResets();
   }
 
   on(event, fn) {
@@ -49,8 +55,95 @@ export class InputSystem {
     this.sneakToggle = Boolean(val);
   }
 
+  /**
+   * Resets all in-flight touch/pointer/keyboard states (e.g. on blur, app switch, or modal open).
+   */
+  resetAll() {
+    this.keys.clear();
+    if (this._resetJoystick) this._resetJoystick();
+    this.dragPointerId = null;
+    this._releasePrimary();
+    if (this.secondaryBtn) this.secondaryBtn.classList.remove('pressed');
+  }
+
+  /**
+   * Binds a real-time HUD button with zero-delay pointerdown and touch/dblclick zoom guards.
+   */
+  bindInstantButton(el, onPress) {
+    if (!el) return;
+    const prevent = e => e.preventDefault();
+    el.addEventListener('touchstart', prevent, { passive: false });
+    el.addEventListener('touchend', prevent, { passive: false });
+    el.addEventListener('dblclick', prevent);
+
+    let activePointerId = null;
+    const clearPressed = e => {
+      if (e && typeof e.pointerId === 'number' && activePointerId !== null && e.pointerId !== activePointerId) {
+        return;
+      }
+      activePointerId = null;
+      el.classList.remove('pressed');
+    };
+
+    el.addEventListener('pointerdown', e => {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      e.preventDefault();
+      e.stopPropagation();
+      activePointerId = e.pointerId;
+      el.classList.add('pressed');
+      try {
+        el.setPointerCapture(e.pointerId);
+      } catch {
+        // Synthetic pointer events in tests may not support capture
+      }
+      onPress(e);
+    });
+    el.addEventListener('pointerup', clearPressed);
+    el.addEventListener('pointercancel', clearPressed);
+    el.addEventListener('lostpointercapture', () => {
+      activePointerId = null;
+      el.classList.remove('pressed');
+    });
+  }
+
+  _bindGlobalTouchGuard() {
+    const prevent = e => e.preventDefault();
+    document.addEventListener('gesturestart', prevent, { passive: false });
+    document.addEventListener('gesturechange', prevent, { passive: false });
+    document.addEventListener('gestureend', prevent, { passive: false });
+    document.addEventListener('dblclick', prevent);
+
+    // Block multi-touch pinch-zoom while keeping single-finger clicks & modal scroll working
+    document.addEventListener(
+      'touchstart',
+      e => {
+        if (e.touches.length > 1) e.preventDefault();
+      },
+      { passive: false }
+    );
+    document.addEventListener(
+      'touchmove',
+      e => {
+        if (e.touches.length > 1 || (typeof e.scale === 'number' && e.scale !== 1)) {
+          e.preventDefault();
+        }
+      },
+      { passive: false }
+    );
+  }
+
+  _guardTouchSurface(el) {
+    const prevent = e => e.preventDefault();
+    for (const type of ['touchstart', 'touchmove', 'touchend']) {
+      el.addEventListener(type, prevent, { passive: false });
+    }
+    el.addEventListener('dblclick', prevent);
+  }
+
   _bindJoystick(zone, knob) {
     this.joystickKnob = knob;
+    this._guardTouchSurface(zone);
+
     const updateKnob = (dx, dy) => {
       const dist = Math.hypot(dx, dy);
       const clamped = Math.min(dist, this.maxJoyRadius);
@@ -70,25 +163,33 @@ export class InputSystem {
       this.joyVec.y = 0;
       knob.style.transform = 'translate(0px, 0px)';
     };
+    this._resetJoystick = resetKnob;
 
     zone.addEventListener('pointerdown', e => {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
       if (this.joyPointerId !== null) return;
       e.preventDefault();
       e.stopPropagation();
       this.joyPointerId = e.pointerId;
       this.joyActive = true;
-      zone.setPointerCapture(e.pointerId);
+      try {
+        zone.setPointerCapture(e.pointerId);
+      } catch {
+        // Fallback to window pointermove/pointerup listeners
+      }
       const rect = zone.getBoundingClientRect();
       this.joyOrigin.x = rect.left + rect.width / 2;
       this.joyOrigin.y = rect.top + rect.height / 2;
       updateKnob(e.clientX - this.joyOrigin.x, e.clientY - this.joyOrigin.y);
     });
 
-    zone.addEventListener('pointermove', e => {
+    const moveHandler = e => {
       if (e.pointerId !== this.joyPointerId) return;
       e.preventDefault();
       updateKnob(e.clientX - this.joyOrigin.x, e.clientY - this.joyOrigin.y);
-    });
+    };
+    zone.addEventListener('pointermove', moveHandler);
+    window.addEventListener('pointermove', moveHandler);
 
     const endHandler = e => {
       if (e.pointerId !== this.joyPointerId) return;
@@ -96,14 +197,28 @@ export class InputSystem {
     };
     zone.addEventListener('pointerup', endHandler);
     zone.addEventListener('pointercancel', endHandler);
+    zone.addEventListener('lostpointercapture', () => {
+      if (this.joyPointerId !== null) resetKnob();
+    });
+    window.addEventListener('pointerup', endHandler);
+    window.addEventListener('pointercancel', endHandler);
   }
 
   _bindCameraDrag(container) {
+    this._guardTouchSurface(container);
+
     container.addEventListener('pointerdown', e => {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
       if (this.dragPointerId !== null) return;
+      e.preventDefault();
       this.dragPointerId = e.pointerId;
       this.dragLastX = e.clientX;
       this.dragLastY = e.clientY;
+      try {
+        container.setPointerCapture(e.pointerId);
+      } catch {
+        // Fallback to window listeners
+      }
     });
 
     window.addEventListener('pointermove', e => {
@@ -119,30 +234,63 @@ export class InputSystem {
     const stopDrag = e => {
       if (e.pointerId === this.dragPointerId) this.dragPointerId = null;
     };
+    container.addEventListener('pointerup', stopDrag);
+    container.addEventListener('pointercancel', stopDrag);
+    container.addEventListener('lostpointercapture', () => {
+      this.dragPointerId = null;
+    });
     window.addEventListener('pointerup', stopDrag);
     window.addEventListener('pointercancel', stopDrag);
   }
 
+  _releasePrimary() {
+    this.primaryPointerId = null;
+    if (!this.isPrimaryHeld) {
+      if (this.primaryBtn) this.primaryBtn.classList.remove('pressed');
+      return;
+    }
+    this.isPrimaryHeld = false;
+    if (this.primaryBtn) this.primaryBtn.classList.remove('pressed');
+    this.callbacks.onPrimaryUp();
+  }
+
   _bindActionButtons(primaryBtn, secondaryBtn) {
+    const prevent = e => e.preventDefault();
+    primaryBtn.addEventListener('touchstart', prevent, { passive: false });
+    primaryBtn.addEventListener('touchend', prevent, { passive: false });
+    primaryBtn.addEventListener('dblclick', prevent);
+
     const pDown = e => {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
       e.preventDefault();
+      e.stopPropagation();
+      if (this.primaryPointerId !== null) return;
+      this.primaryPointerId = e.pointerId;
+      try {
+        primaryBtn.setPointerCapture(e.pointerId);
+      } catch {
+        // Fallback to window pointerup/pointercancel
+      }
       this.isPrimaryHeld = true;
       primaryBtn.classList.add('pressed');
       this.callbacks.onPrimaryDown();
     };
-    const pUp = () => {
-      if (!this.isPrimaryHeld) return;
-      this.isPrimaryHeld = false;
-      primaryBtn.classList.remove('pressed');
-      this.callbacks.onPrimaryUp();
+
+    const pUp = e => {
+      if (this.primaryPointerId === null || e.pointerId !== this.primaryPointerId) return;
+      this._releasePrimary();
     };
 
     primaryBtn.addEventListener('pointerdown', pDown);
+    primaryBtn.addEventListener('pointerup', pUp);
+    primaryBtn.addEventListener('pointercancel', pUp);
+    primaryBtn.addEventListener('lostpointercapture', () => {
+      if (this.primaryPointerId !== null) this._releasePrimary();
+    });
     window.addEventListener('pointerup', pUp);
     window.addEventListener('pointercancel', pUp);
 
-    secondaryBtn.addEventListener('click', e => {
-      e.preventDefault();
+    this.bindInstantButton(secondaryBtn, () => {
       this.callbacks.onSecondaryPress();
     });
   }
@@ -186,16 +334,18 @@ export class InputSystem {
     window.addEventListener('keyup', e => {
       this.keys.delete(e.code);
       if (e.code === 'Space' || e.code === 'KeyE') {
-        if (this.isPrimaryHeld) {
+        if (this.isPrimaryHeld && this.primaryPointerId === null) {
           this.isPrimaryHeld = false;
           this.callbacks.onPrimaryUp();
         }
       }
     });
+  }
 
-    window.addEventListener('blur', () => {
-      this.keys.clear();
-      this.isPrimaryHeld = false;
+  _bindLifecycleResets() {
+    window.addEventListener('blur', () => this.resetAll());
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) this.resetAll();
     });
   }
 

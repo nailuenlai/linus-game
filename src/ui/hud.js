@@ -122,14 +122,18 @@ export class HudManager {
       this.lastPrimaryKey = pKey;
       this.elPrimaryIcon.textContent = primary.icon;
       this.elPrimaryLabel.textContent = primary.label;
-      this.btnPrimary.className = 'action-btn primary' + (primary.mode ? ` mode-${primary.mode}` : '');
+      const wasPressed = this.btnPrimary.classList.contains('pressed');
+      this.btnPrimary.className =
+        'action-btn primary' + (primary.mode ? ` mode-${primary.mode}` : '') + (wasPressed ? ' pressed' : '');
     }
 
     const sKey = secondary ? `${secondary.icon}|${secondary.label}|${secondary.extraClass || ''}` : 'none';
     if (sKey !== this.lastSecondaryKey) {
       this.lastSecondaryKey = sKey;
       if (secondary) {
-        this.btnSecondary.className = 'action-btn secondary' + (secondary.extraClass ? ` ${secondary.extraClass}` : '');
+        const wasPressed = this.btnSecondary.classList.contains('pressed');
+        this.btnSecondary.className =
+          'action-btn secondary' + (secondary.extraClass ? ` ${secondary.extraClass}` : '') + (wasPressed ? ' pressed' : '');
         this.elSecondaryIcon.textContent = secondary.icon;
         this.elSecondaryLabel.textContent = secondary.label;
       } else {

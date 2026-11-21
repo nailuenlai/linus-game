@@ -32,7 +32,8 @@ export class ModalManager {
     onStartPlaceFurniture,
     onMuseumChange,
     onSummonBoat,
-    onFastTravelHome
+    onFastTravelHome,
+    onModalOpen
   }) {
     this.store = store;
     this.audio = audio;
@@ -46,6 +47,7 @@ export class ModalManager {
     this.onMuseumChange = onMuseumChange;
     this.onSummonBoat = onSummonBoat;
     this.onFastTravelHome = onFastTravelHome;
+    this.onModalOpen = onModalOpen;
 
     this.backdrop = document.getElementById('modal-backdrop');
     this.titleEl = document.getElementById('modal-title');
@@ -101,6 +103,7 @@ export class ModalManager {
 
   _openPanel(title, name) {
     this.closeAll();
+    if (this.onModalOpen) this.onModalOpen();
     this.activeModal = name;
     this.titleEl.textContent = title;
     this.backdrop.classList.remove('hidden');
@@ -110,6 +113,7 @@ export class ModalManager {
   // ==================== Catch Celebration ====================
   showCatchModal(creature, size, { isNew, isRecord }) {
     this.closeAll();
+    if (this.onModalOpen) this.onModalOpen();
     this.catchNew.classList.toggle('hidden', !isNew && !isRecord);
     if (isNew) this.catchNew.textContent = '✨ 新登錄圖鑑！可捐贈博物館！';
     else if (isRecord) this.catchNew.textContent = '🏆 刷新體長紀錄！';
@@ -127,6 +131,7 @@ export class ModalManager {
   // ==================== NPC Dialogue ====================
   openNpcDialogue(npc) {
     this.closeAll();
+    if (this.onModalOpen) this.onModalOpen();
     this.audio.playNpcChirp();
     this.dlgPortrait.textContent = npc.portrait;
     this.dlgName.textContent = npc.name;

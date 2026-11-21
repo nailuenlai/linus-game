@@ -108,7 +108,8 @@ class BreezeArchipelagoGame {
       onStartPlaceFurniture: id => this._startPlaceFurniture(id),
       onMuseumChange: () => this._syncMuseumVisuals(),
       onSummonBoat: () => this._summonBoatNearby(),
-      onFastTravelHome: () => this._fastTravelHome()
+      onFastTravelHome: () => this._fastTravelHome(),
+      onModalOpen: () => this.input?.resetAll()
     });
 
     this.store.subscribe(() => this.hud.syncStore(this.store));
@@ -166,33 +167,33 @@ class BreezeArchipelagoGame {
       this.hud.toast('💡 提示：西邊空地可蓋自己的小屋，北邊有博物館，南邊碼頭可開船探索 6 座外島！', 4200);
     });
 
-    window.addEventListener('pointerdown', () => audio.unlock(), { once: true });
+    window.addEventListener('pointerdown', () => audio.unlock(), { once: true, capture: true });
 
     document.querySelectorAll('.tool-slot').forEach(btn => {
-      btn.addEventListener('click', () => {
+      this.input.bindInstantButton(btn, () => {
         audio.playClick();
         this._selectTool(btn.dataset.tool);
       });
     });
 
-    document.getElementById('btn-open-bag').addEventListener('click', () => this.modals.openBag());
-    document.getElementById('btn-open-dex').addEventListener('click', () => this.modals.openDex());
-    document.getElementById('btn-open-quests').addEventListener('click', () => this.modals.openQuests());
-    document.getElementById('quest-tracker').addEventListener('click', () => this.modals.openQuests());
-    document.getElementById('btn-open-settings').addEventListener('click', () => this.modals.openSettings());
-    document.getElementById('btn-time-weather').addEventListener('click', () => this.modals.openTimeWeather());
-    document.getElementById('btn-open-map').addEventListener('click', () => {
+    this.input.bindInstantButton(document.getElementById('btn-open-bag'), () => this.modals.openBag());
+    this.input.bindInstantButton(document.getElementById('btn-open-dex'), () => this.modals.openDex());
+    this.input.bindInstantButton(document.getElementById('btn-open-quests'), () => this.modals.openQuests());
+    this.input.bindInstantButton(document.getElementById('quest-tracker'), () => this.modals.openQuests());
+    this.input.bindInstantButton(document.getElementById('btn-open-settings'), () => this.modals.openSettings());
+    this.input.bindInstantButton(document.getElementById('btn-time-weather'), () => this.modals.openTimeWeather());
+    this.input.bindInstantButton(document.getElementById('btn-open-map'), () => {
       const p = this.interiors.mode === 'exterior' ? this._getActivePos() : { ...this.returnExteriorPos };
       this.modals.openMap(p.x, p.z, p.yaw || 0, this.boat.x, this.boat.z);
     });
 
     // House Decorate floating controls
-    document.getElementById('btn-decor-rotate').addEventListener('click', () => {
+    this.input.bindInstantButton(document.getElementById('btn-decor-rotate'), () => {
       audio.playClick();
       this.interiors.rotatePreview();
     });
-    document.getElementById('btn-decor-confirm').addEventListener('click', () => this._confirmFurniturePlacement());
-    document.getElementById('btn-decor-cancel').addEventListener('click', () => {
+    this.input.bindInstantButton(document.getElementById('btn-decor-confirm'), () => this._confirmFurniturePlacement());
+    this.input.bindInstantButton(document.getElementById('btn-decor-cancel'), () => {
       audio.playClick();
       this._cancelFurniturePlacement();
     });
