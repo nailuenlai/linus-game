@@ -9,6 +9,7 @@ export class NpcManager {
     this.entities = [];
 
     for (const data of NPCS) {
+      if (data.indoor) continue;
       const group = this._buildAnimalMesh(data.species);
       const y = getTerrainHeight(data.x, data.z);
       group.position.set(data.x, y, data.z);
@@ -40,7 +41,10 @@ export class NpcManager {
       bunny: { body: 0xfff5ec, belly: 0xffe5ec, shirt: 0xf284a2, ear: 0xffb3c6 },
       turtle: { body: 0x70b868, belly: 0xf3df9e, shirt: 0x3b7a57, ear: 0x4f9952 },
       panda: { body: 0xfbfbfb, belly: 0x262626, shirt: 0xd64045, ear: 0x222222 },
-      owl: { body: 0x8d6e63, belly: 0xefe2ce, shirt: 0x3f5e8a, ear: 0x5d4037 }
+      owl: { body: 0x8d6e63, belly: 0xefe2ce, shirt: 0x3f5e8a, ear: 0x5d4037 },
+      monkey: { body: 0x8c5630, belly: 0xf3d4a0, shirt: 0x4fa664, ear: 0x6b3e1f },
+      fennec: { body: 0xe8a05d, belly: 0xfff0d4, shirt: 0xd65a31, ear: 0xc97336 },
+      penguin: { body: 0x263547, belly: 0xf8fbff, shirt: 0x48bfe3, ear: 0x263547 }
     };
     const p = palettes[species] || palettes.tanuki;
 
@@ -57,10 +61,10 @@ export class NpcManager {
 
     // Little feet
     const footGeo = new THREE.SphereGeometry(0.16, 6, 5);
-    const fL = new THREE.Mesh(footGeo, bodyMat);
+    const fL = new THREE.Mesh(footGeo, species === 'penguin' ? new THREE.MeshStandardMaterial({ color: 0xf48c25 }) : bodyMat);
     fL.position.set(-0.22, 0.16, 0.08);
-    const fR = new THREE.Mesh(footGeo, bodyMat);
-    fR.position.set(0.22, 0.16, 0.08);
+    const fR = fL.clone();
+    fR.position.x = 0.22;
     g.add(fL, fR);
 
     // Cute arms
@@ -106,30 +110,57 @@ export class NpcManager {
       shell.position.set(0, 0.75, -0.35);
       shell.castShadow = true;
       g.add(shell);
-    } else if (species === 'owl') {
+    } else if (species === 'owl' || species === 'penguin') {
       const beak = new THREE.Mesh(
-        new THREE.ConeGeometry(0.1, 0.24, 4),
+        new THREE.ConeGeometry(0.11, 0.25, 4),
         new THREE.MeshStandardMaterial({ color: 0xf4a261, flatShading: true })
       );
       beak.rotation.x = Math.PI / 2;
       beak.position.set(0, 1.38, 0.5);
       g.add(beak);
-      // Owl ear tufts
-      for (const sx of [-0.28, 0.28]) {
-        const tuft = new THREE.Mesh(new THREE.ConeGeometry(0.11, 0.26, 4), earMat);
-        tuft.position.set(sx, 1.88, 0);
-        g.add(tuft);
+      if (species === 'owl') {
+        for (const sx of [-0.28, 0.28]) {
+          const tuft = new THREE.Mesh(new THREE.ConeGeometry(0.11, 0.26, 4), earMat);
+          tuft.position.set(sx, 1.88, 0);
+          g.add(tuft);
+        }
+      } else {
+        // Penguin snowy belly & warm scarf
+        const belly = new THREE.Mesh(new THREE.SphereGeometry(0.35, 7, 6), bellyMat);
+        belly.scale.set(0.85, 1.05, 0.55);
+        belly.position.set(0, 0.68, 0.28);
+        const scarf = new THREE.Mesh(
+          new THREE.TorusGeometry(0.36, 0.08, 5, 10),
+          new THREE.MeshStandardMaterial({ color: 0xe63946 })
+        );
+        scarf.rotation.x = Math.PI / 2;
+        scarf.position.y = 1.08;
+        g.add(belly, scarf);
       }
+    } else if (species === 'fennec') {
+      // Big cute fennec ears + fluffy tail
+      for (const sx of [-0.32, 0.32]) {
+        const ear = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.62, 5), earMat);
+        ear.position.set(sx, 1.98, 0);
+        ear.rotation.z = sx > 0 ? -0.35 : 0.35;
+        g.add(ear);
+      }
+      const snout = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.32, 5), bellyMat);
+      snout.rotation.x = Math.PI / 2;
+      snout.position.set(0, 1.35, 0.5);
+      const tail = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.65, 6), bellyMat);
+      tail.rotation.x = -0.7;
+      tail.position.set(0, 0.48, -0.52);
+      g.add(snout, tail);
     } else {
-      // Round ears (Tanuki, Otter, Panda)
-      const earGeo = new THREE.SphereGeometry(0.16, 6, 6);
+      // Round ears (Tanuki, Otter, Panda, Monkey)
+      const earGeo = new THREE.SphereGeometry(species === 'monkey' ? 0.19 : 0.16, 6, 6);
       const earL = new THREE.Mesh(earGeo, earMat);
-      earL.position.set(-0.34, 1.82, 0);
+      earL.position.set(species === 'monkey' ? -0.46 : -0.34, species === 'monkey' ? 1.48 : 1.82, 0);
       const earR = new THREE.Mesh(earGeo, earMat);
-      earR.position.set(0.34, 1.82, 0);
+      earR.position.set(species === 'monkey' ? 0.46 : 0.34, species === 'monkey' ? 1.48 : 1.82, 0);
       g.add(earL, earR);
 
-      // Snout
       const snout = new THREE.Mesh(new THREE.SphereGeometry(0.18, 6, 6), bellyMat);
       snout.scale.set(1.15, 0.85, 0.9);
       snout.position.set(0, 1.34, 0.42);
@@ -137,14 +168,12 @@ export class NpcManager {
       nose.position.set(0, 1.38, 0.57);
       g.add(snout, nose);
 
-      if (species === 'tanuki') {
-        // Cozy shop apron & fluffy tail
-        const tail = new THREE.Mesh(new THREE.CapsuleGeometry(0.16, 0.45, 4, 6), earMat);
-        tail.position.set(0, 0.45, -0.52);
+      if (species === 'tanuki' || species === 'monkey') {
+        const tail = new THREE.Mesh(new THREE.CapsuleGeometry(0.12, 0.55, 4, 6), earMat);
+        tail.position.set(0, 0.52, -0.52);
         tail.rotation.x = -0.8;
         g.add(tail);
       } else if (species === 'otter') {
-        // Sailor cap for Otter Captain
         const cap = new THREE.Mesh(
           new THREE.CylinderGeometry(0.38, 0.32, 0.2, 8),
           new THREE.MeshStandardMaterial({ color: 0xffffff, flatShading: true })
@@ -152,7 +181,6 @@ export class NpcManager {
         cap.position.y = 1.9;
         g.add(cap);
       } else if (species === 'panda') {
-        // Dark eye patches
         const patchGeo = new THREE.SphereGeometry(0.11, 6, 6);
         const pL = new THREE.Mesh(patchGeo, earMat);
         pL.position.set(-0.18, 1.46, 0.36);

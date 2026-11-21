@@ -31,15 +31,17 @@
       <div class="title-card">
         <div class="title-emblem" aria-hidden="true">🏝️⛵</div>
         <h1 class="game-title">微風群島物語</h1>
-        <p class="game-subtitle">駕船探險・悠閒釣魚・捕捉昆蟲・結交島上動物夥伴</p>
+        <p class="game-subtitle">駕船探險・悠閒釣魚・潛行捕蟲抓爬蟲・打造小屋與博物館</p>
         <div class="title-features">
-          <span>🎣 18 種魚類</span>
-          <span>🦋 14 種昆蟲</span>
-          <span>🏝️ 4 座主題島嶼</span>
-          <span>🐾 動物委託任務</span>
+          <span>🎣 30 種魚類</span>
+          <span>🪲 24 種昆蟲甲蟲</span>
+          <span>🦎 12 種爬蟲動物</span>
+          <span>🏝️ 7 座主題島嶼</span>
+          <span>🏡 自建小屋裝潢</span>
+          <span>🏛️ 生態博物館</span>
         </div>
         <button id="btn-start-game" class="btn-primary btn-start">開始冒險</button>
-        <p class="title-hint">手機使用虛擬搖桿與按鈕・電腦支援 WASD / 空白鍵 / 滑鼠拖曳轉視角</p>
+        <p class="title-hint">手機使用虛擬搖桿與按鈕・電腦支援 WASD / Shift 潛行 / 空白鍵 / 滑鼠拖曳轉視角</p>
       </div>
     </section>
 
@@ -49,7 +51,7 @@
       <div class="hud-top-left">
         <div class="pill coin-pill" id="hud-coins" title="金幣">
           <span class="pill-icon">🪙</span>
-          <span id="coin-value" class="pill-value">100</span>
+          <span id="coin-value" class="pill-value">90</span>
         </div>
         <button class="pill time-pill" id="btn-time-weather" title="查看與切換時段">
           <span id="weather-icon">☀️</span>
@@ -114,6 +116,34 @@
           </div>
           <p class="fishing-tip">按住「收線」按鈕或空白鍵，讓魚停在綠色區域內！</p>
         </div>
+      </div>
+
+      <!-- Skill-based Bug & Reptile Timing Mini-Game Overlay -->
+      <div id="bug-catch-overlay" class="fishing-overlay bug-catch-overlay hidden">
+        <div class="fishing-card bug-catch-card">
+          <div class="fishing-header bug-catch-header">
+            <span id="bug-catch-title">🪲 鎖定目標！抓準綠區按揮網！</span>
+          </div>
+          <div class="fishing-track bug-catch-track">
+            <div id="bug-catch-zone" class="bug-catch-zone"></div>
+            <div id="bug-catch-cursor" class="bug-catch-cursor"></div>
+          </div>
+          <div class="fishing-progress-wrap">
+            <div class="fishing-progress-label">反應時間</div>
+            <div class="fishing-progress-bar">
+              <div id="bug-catch-timer-fill" class="fishing-progress-fill bug-timer-fill"></div>
+            </div>
+          </div>
+          <p class="fishing-tip">指針滑進綠色區域時，立刻點擊「⚡ 精準捕獲」或空白鍵！</p>
+        </div>
+      </div>
+
+      <!-- House Furniture Placement Floating Controls -->
+      <div id="decorate-bar" class="decorate-bar hidden">
+        <span id="decorate-bar-label" class="decorate-bar-label">🪑 擺放模式</span>
+        <button id="btn-decor-rotate" class="btn-secondary decor-mini-btn">🔄 旋轉 (R)</button>
+        <button id="btn-decor-confirm" class="btn-primary decor-mini-btn">✅ 放置</button>
+        <button id="btn-decor-cancel" class="btn-secondary decor-mini-btn">✕ 取消</button>
       </div>
 
       <!-- Bottom Left: Virtual Joystick -->

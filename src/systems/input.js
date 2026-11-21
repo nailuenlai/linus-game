@@ -5,6 +5,7 @@ export class InputSystem {
     this.cameraYaw = 0;
     this.cameraPitch = 0.62; // cozy angled top-down
     this.isPrimaryHeld = false;
+    this.sneakToggle = false;
 
     this.keys = new Set();
     this.joyActive = false;
@@ -33,6 +34,19 @@ export class InputSystem {
 
   on(event, fn) {
     this.callbacks[event] = fn;
+  }
+
+  isSneaking() {
+    return this.sneakToggle || this.keys.has('ShiftLeft') || this.keys.has('ShiftRight') || this.keys.has('KeyC');
+  }
+
+  toggleSneak() {
+    this.sneakToggle = !this.sneakToggle;
+    return this.sneakToggle;
+  }
+
+  setSneak(val) {
+    this.sneakToggle = Boolean(val);
   }
 
   _bindJoystick(zone, knob) {
@@ -147,6 +161,8 @@ export class InputSystem {
           this.callbacks.onPrimaryDown();
         } else if (code === 'KeyF') {
           this.callbacks.onSecondaryPress();
+        } else if (code === 'KeyR') {
+          this.callbacks.onShortcut('rotate');
         } else if (code === 'Digit1') {
           this.callbacks.onToolKey('hand');
         } else if (code === 'Digit2') {

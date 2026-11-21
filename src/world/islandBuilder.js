@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ISLANDS, getTerrainHeight, getIslandEdgeRadius, getPondAt } from '../data/islands.js';
+import { ISLANDS, MAIN_LANDMARKS, getTerrainHeight, getIslandEdgeRadius, getPondAt } from '../data/islands.js';
 
 function seededRandom(seed) {
   let s = seed * 9301 + 49297;
@@ -9,32 +9,47 @@ function seededRandom(seed) {
   };
 }
 
-export function buildArchipelago(scene, timeWeather) {
+export function buildArchipelago(root, timeWeather, initialHouseLevel = 0) {
   const obstacles = [];
   const interactables = [];
   const animatedProps = [];
+  let houseExteriorGroup = null;
 
   for (const isl of ISLANDS) {
-    _buildIslandTerrain(scene, isl);
-    _buildDock(scene, isl, timeWeather);
+    _buildIslandTerrain(root, isl);
+    _buildDock(root, isl, timeWeather);
 
     if (isl.id === 'main') {
-      _buildMainIslandProps(scene, isl, timeWeather, obstacles, interactables, animatedProps);
+      houseExteriorGroup = _buildMainIslandProps(
+        root,
+        isl,
+        timeWeather,
+        obstacles,
+        interactables,
+        animatedProps,
+        initialHouseLevel
+      );
     } else if (isl.id === 'coconut') {
-      _buildCoconutIslandProps(scene, isl, timeWeather, obstacles, animatedProps);
+      _buildCoconutIslandProps(root, isl, timeWeather, obstacles, animatedProps);
     } else if (isl.id === 'sakura') {
-      _buildSakuraIslandProps(scene, isl, timeWeather, obstacles, animatedProps);
+      _buildSakuraIslandProps(root, isl, timeWeather, obstacles);
     } else if (isl.id === 'ruins') {
-      _buildRuinsIslandProps(scene, isl, timeWeather, obstacles, animatedProps);
+      _buildRuinsIslandProps(root, isl, timeWeather, obstacles, animatedProps);
+    } else if (isl.id === 'jungle') {
+      _buildJungleIslandProps(root, isl, timeWeather, obstacles, animatedProps);
+    } else if (isl.id === 'volcano') {
+      _buildVolcanoIslandProps(root, isl, timeWeather, obstacles, animatedProps);
+    } else if (isl.id === 'glacier') {
+      _buildGlacierIslandProps(root, isl, timeWeather, obstacles, animatedProps);
     }
   }
 
-  _buildSkyClouds(scene, animatedProps);
+  _buildSkyClouds(root, animatedProps);
 
-  return { obstacles, interactables, animatedProps };
+  return { obstacles, interactables, animatedProps, houseExteriorGroup };
 }
 
-function _buildIslandTerrain(scene, isl) {
+function _buildIslandTerrain(root, isl) {
   const size = isl.radius * 2.75;
   const segs = 44;
   const geo = new THREE.PlaneGeometry(size, size, segs, segs);
@@ -45,7 +60,7 @@ function _buildIslandTerrain(scene, isl) {
   const cSand = new THREE.Color(isl.sandColor);
   const cGrass = new THREE.Color(isl.grassColor);
   const cAccent = new THREE.Color(isl.grassAccent);
-  const cDeep = new THREE.Color(0xb8a378);
+  const cDeep = new THREE.Color(isl.id === 'glacier' ? 0x6ea6c4 : 0xb8a378);
   const tmp = new THREE.Color();
 
   for (let i = 0; i < pos.count; i++) {
@@ -81,10 +96,10 @@ function _buildIslandTerrain(scene, isl) {
   const mesh = new THREE.Mesh(geo, mat);
   mesh.position.set(isl.x, 0, isl.z);
   mesh.receiveShadow = true;
-  scene.add(mesh);
+  root.add(mesh);
 }
 
-function _buildDock(scene, isl, timeWeather) {
+function _buildDock(root, isl, timeWeather) {
   const dockGroup = new THREE.Group();
   const woodMat = new THREE.MeshStandardMaterial({ color: 0xa67449, roughness: 0.9, flatShading: true });
   const postMat = new THREE.MeshStandardMaterial({ color: 0x7a5130, roughness: 0.95, flatShading: true });
@@ -99,7 +114,6 @@ function _buildDock(scene, isl, timeWeather) {
   dockGroup.position.set(isl.x + dirX * midR, 0.58, isl.z + dirZ * midR);
   dockGroup.rotation.y = Math.atan2(dirX, dirZ);
 
-  // Planks
   for (let i = 0; i < 9; i++) {
     const plank = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.18, 0.92), woodMat);
     plank.position.set(0, 0, -dockLen / 2 + 0.55 + i * 1.05);
@@ -108,7 +122,6 @@ function _buildDock(scene, isl, timeWeather) {
     dockGroup.add(plank);
   }
 
-  // Support posts
   for (const sx of [-1.45, 1.45]) {
     for (const sz of [-3.6, 0, 3.8]) {
       const post = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.2, 2.4, 6), postMat);
@@ -118,7 +131,6 @@ function _buildDock(scene, isl, timeWeather) {
     }
   }
 
-  // Harbor Lantern on dock tip
   const lanternPost = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.14, 2.4, 6), postMat);
   lanternPost.position.set(1.45, 1.2, 4.1);
   dockGroup.add(lanternPost);
@@ -133,7 +145,7 @@ function _buildDock(scene, isl, timeWeather) {
   lamp.position.set(1.45, 2.5, 4.1);
   dockGroup.add(lamp);
 
-  scene.add(dockGroup);
+  root.add(dockGroup);
 }
 
 function _createOakTree(scale = 1, foliageColor = 0x52a858) {
@@ -161,7 +173,7 @@ function _createOakTree(scale = 1, foliageColor = 0x52a858) {
   return g;
 }
 
-function _createPineTree(scale = 1, color = 0x3b8656) {
+function _createPineTree(scale = 1, color = 0x3b8656, snowCap = false) {
   const g = new THREE.Group();
   const trunk = new THREE.Mesh(
     new THREE.CylinderGeometry(0.24, 0.36, 1.8, 6),
@@ -172,12 +184,42 @@ function _createPineTree(scale = 1, color = 0x3b8656) {
   g.add(trunk);
 
   const mat = new THREE.MeshStandardMaterial({ color, flatShading: true });
+  const snowMat = new THREE.MeshStandardMaterial({ color: 0xf4fbff, flatShading: true });
   for (let i = 0; i < 3; i++) {
     const cone = new THREE.Mesh(new THREE.ConeGeometry(1.55 - i * 0.35, 1.85, 6), mat);
     cone.position.y = 2.0 + i * 1.15;
     cone.castShadow = true;
     g.add(cone);
+    if (snowCap) {
+      const cap = new THREE.Mesh(new THREE.ConeGeometry(1.18 - i * 0.28, 0.72, 6), snowMat);
+      cap.position.y = 2.6 + i * 1.15;
+      g.add(cap);
+    }
   }
+  g.scale.setScalar(scale);
+  return g;
+}
+
+function _createJungleTree(scale = 1) {
+  const g = new THREE.Group();
+  const trunk = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.35, 0.55, 4.4, 7),
+    new THREE.MeshStandardMaterial({ color: 0x6b4423, flatShading: true })
+  );
+  trunk.position.y = 2.2;
+  trunk.castShadow = true;
+  g.add(trunk);
+
+  const leaf1 = new THREE.MeshStandardMaterial({ color: 0x2d8a4e, flatShading: true });
+  const leaf2 = new THREE.MeshStandardMaterial({ color: 0x43a858, flatShading: true });
+  const canopy = new THREE.Mesh(new THREE.DodecahedronGeometry(2.2, 0), leaf1);
+  canopy.scale.set(1.25, 0.65, 1.25);
+  canopy.position.set(0, 4.7, 0);
+  canopy.castShadow = true;
+  const sub = new THREE.Mesh(new THREE.DodecahedronGeometry(1.4, 0), leaf2);
+  sub.scale.set(1.1, 0.6, 1.1);
+  sub.position.set(1.1, 4.1, 0.6);
+  g.add(canopy, sub);
   g.scale.setScalar(scale);
   return g;
 }
@@ -209,7 +251,6 @@ function _createPalmTree(scale = 1) {
     g.add(frond);
   }
 
-  // Coconuts
   const cocoMat = new THREE.MeshStandardMaterial({ color: 0x694225, flatShading: true });
   for (let i = 0; i < 3; i++) {
     const a = (i / 3) * Math.PI * 2;
@@ -298,7 +339,137 @@ function _createRock(scale = 1, color = 0x9aa3a6) {
   return m;
 }
 
-function _buildMainIslandProps(scene, isl, timeWeather, obstacles, interactables, animatedProps) {
+/**
+ * Rebuilds the player's house exterior mesh on Main Island for level 0 (plot), 1 (cabin), or 2 (villa).
+ */
+export function updateHouseExterior(houseGroup, level, timeWeather) {
+  while (houseGroup.children.length) {
+    houseGroup.remove(houseGroup.children[0]);
+  }
+
+  const woodMat = new THREE.MeshStandardMaterial({ color: 0x9c6644, flatShading: true });
+  const wallMat = new THREE.MeshStandardMaterial({ color: level >= 2 ? 0xfff8eb : 0xf5e2c2, flatShading: true });
+  const roofMat = new THREE.MeshStandardMaterial({
+    color: level >= 2 ? 0x2a7f9e : 0x52a858,
+    flatShading: true
+  });
+
+  if (level === 0) {
+    // Cozy Construction Plot with wooden corner stakes, rope & build sign!
+    const plotBase = new THREE.Mesh(
+      new THREE.BoxGeometry(5.6, 0.14, 4.6),
+      new THREE.MeshStandardMaterial({ color: 0xe3cfa6, flatShading: true })
+    );
+    plotBase.position.y = 0.07;
+    plotBase.receiveShadow = true;
+    houseGroup.add(plotBase);
+
+    for (const [sx, sz] of [[-2.6, -2.1], [2.6, -2.1], [-2.6, 2.1], [2.6, 2.1]]) {
+      const stake = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 1.1, 6), woodMat);
+      stake.position.set(sx, 0.55, sz);
+      stake.castShadow = true;
+      houseGroup.add(stake);
+    }
+
+    // Little starter tent / toolbox & signpost
+    const tent = new THREE.Mesh(
+      new THREE.ConeGeometry(1.55, 1.9, 4),
+      new THREE.MeshStandardMaterial({ color: 0xf4a261, flatShading: true })
+    );
+    tent.rotation.y = Math.PI / 4;
+    tent.position.set(-0.9, 0.95, -0.4);
+    tent.castShadow = true;
+    houseGroup.add(tent);
+
+    const signPost = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 1.5, 6), woodMat);
+    signPost.position.set(1.5, 0.75, 1.2);
+    const signBoard = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.75, 0.14), new THREE.MeshStandardMaterial({ color: 0xfff3d1, flatShading: true }));
+    signBoard.position.set(1.5, 1.45, 1.2);
+    houseGroup.add(signPost, signBoard);
+  } else {
+    // Level 1 Cozy Cabin OR Level 2 Spacious Sea-View Villa!
+    const w = level >= 2 ? 6.4 : 5.4;
+    const h = level >= 2 ? 3.8 : 3.2;
+    const d = level >= 2 ? 5.2 : 4.4;
+
+    const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wallMat);
+    body.position.y = h / 2;
+    body.castShadow = true;
+    body.receiveShadow = true;
+    houseGroup.add(body);
+
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(w * 0.85, level >= 2 ? 2.8 : 2.3, 4), roofMat);
+    roof.rotation.y = Math.PI / 4;
+    roof.position.y = h + (level >= 2 ? 1.3 : 1.05);
+    roof.castShadow = true;
+    houseGroup.add(roof);
+
+    // Chimney
+    const chimney = new THREE.Mesh(
+      new THREE.BoxGeometry(0.75, 1.6, 0.75),
+      new THREE.MeshStandardMaterial({ color: 0xb55d4c, flatShading: true })
+    );
+    chimney.position.set(w * 0.28, h + 1.1, -d * 0.2);
+    houseGroup.add(chimney);
+
+    // Door & glowing windows
+    const door = new THREE.Mesh(new THREE.BoxGeometry(1.25, 2.05, 0.18), woodMat);
+    door.position.set(0, 1.02, d / 2 + 0.02);
+    houseGroup.add(door);
+
+    const winMat = new THREE.MeshStandardMaterial({
+      color: 0xfff4c2,
+      emissive: 0xffc86b,
+      emissiveIntensity: 0.45
+    });
+    if (timeWeather) timeWeather.registerNightMaterial(winMat, 1.15);
+    for (const wx of [-w * 0.3, w * 0.3]) {
+      const win = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.95, 0.18), winMat);
+      win.position.set(wx, 1.85, d / 2 + 0.02);
+      houseGroup.add(win);
+    }
+
+    // Cute Wooden Porch Deck + Mailbox
+    const porch = new THREE.Mesh(new THREE.BoxGeometry(w * 0.78, 0.22, 1.5), woodMat);
+    porch.position.set(0, 0.11, d / 2 + 0.72);
+    houseGroup.add(porch);
+
+    const mbPost = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.15, 5), woodMat);
+    mbPost.position.set(w * 0.45, 0.58, d / 2 + 1.1);
+    const mbBox = new THREE.Mesh(
+      new THREE.BoxGeometry(0.42, 0.3, 0.52),
+      new THREE.MeshStandardMaterial({ color: 0xe56b5b, flatShading: true })
+    );
+    mbBox.position.set(w * 0.45, 1.2, d / 2 + 1.1);
+    houseGroup.add(mbPost, mbBox);
+
+    if (level >= 2) {
+      // Extra flower boxes under windows
+      const boxMat = new THREE.MeshStandardMaterial({ color: 0x4fa664, flatShading: true });
+      for (const wx of [-w * 0.3, w * 0.3]) {
+        const fb = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.32, 0.34), boxMat);
+        fb.position.set(wx, 1.22, d / 2 + 0.18);
+        houseGroup.add(fb);
+      }
+    }
+  }
+
+  // Entry indicator ring in front of house/plot
+  const padRing = new THREE.Mesh(
+    new THREE.RingGeometry(1.05, 1.35, 24),
+    new THREE.MeshBasicMaterial({
+      color: level === 0 ? 0xf7c948 : 0x58b870,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.78
+    })
+  );
+  padRing.rotation.x = -Math.PI / 2;
+  padRing.position.set(0, 0.09, 3.85);
+  houseGroup.add(padRing);
+}
+
+function _buildMainIslandProps(root, isl, timeWeather, obstacles, interactables, animatedProps, initialHouseLevel) {
   // === 1. Cozy General Store (微風雜貨店) ===
   const shopX = 8.5;
   const shopZ = -9.2;
@@ -311,31 +482,26 @@ function _buildMainIslandProps(scene, isl, timeWeather, obstacles, interactables
   const trimMat = new THREE.MeshStandardMaterial({ color: 0x8f5b34, flatShading: true });
   const roofMat = new THREE.MeshStandardMaterial({ color: 0xd95f4a, flatShading: true });
 
-  // Main cottage body
   const body = new THREE.Mesh(new THREE.BoxGeometry(6.6, 3.6, 5.2), wallMat);
   body.position.y = 1.8;
   body.castShadow = true;
   body.receiveShadow = true;
   shop.add(body);
 
-  // Pitched roof
   const roof = new THREE.Mesh(new THREE.ConeGeometry(5.6, 2.7, 4), roofMat);
   roof.rotation.y = Math.PI / 4;
   roof.position.y = 4.85;
   roof.castShadow = true;
   shop.add(roof);
 
-  // Chimney
   const chimney = new THREE.Mesh(new THREE.BoxGeometry(0.85, 1.8, 0.85), new THREE.MeshStandardMaterial({ color: 0xb87456, flatShading: true }));
   chimney.position.set(-1.9, 4.7, -1.2);
   shop.add(chimney);
 
-  // Wooden door
   const door = new THREE.Mesh(new THREE.BoxGeometry(1.4, 2.2, 0.18), trimMat);
   door.position.set(0, 1.1, 2.62);
   shop.add(door);
 
-  // Glowing shop windows
   const winMat = new THREE.MeshStandardMaterial({
     color: 0xfff1ba,
     emissive: 0xffbe55,
@@ -348,7 +514,6 @@ function _buildMainIslandProps(scene, isl, timeWeather, obstacles, interactables
     shop.add(win);
   }
 
-  // Striped Awning
   for (let i = 0; i < 6; i++) {
     const stripe = new THREE.Mesh(
       new THREE.BoxGeometry(1.12, 0.16, 1.7),
@@ -360,12 +525,10 @@ function _buildMainIslandProps(scene, isl, timeWeather, obstacles, interactables
     shop.add(stripe);
   }
 
-  // Wooden counter + crate beside door
   const crate = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.85, 0.9), trimMat);
   crate.position.set(-2.3, 0.42, 3.2);
   shop.add(crate);
 
-  // Glowing shop entry pad
   const padRing = new THREE.Mesh(
     new THREE.RingGeometry(1.15, 1.45, 24),
     new THREE.MeshBasicMaterial({ color: 0xf7c948, side: THREE.DoubleSide, transparent: true, opacity: 0.72 })
@@ -375,7 +538,7 @@ function _buildMainIslandProps(scene, isl, timeWeather, obstacles, interactables
   shop.add(padRing);
   animatedProps.push({ type: 'pulse', mesh: padRing });
 
-  scene.add(shop);
+  root.add(shop);
   obstacles.push({ x: shopX, z: shopZ, r: 4.3 });
   interactables.push({
     id: 'shop_counter',
@@ -387,7 +550,105 @@ function _buildMainIslandProps(scene, isl, timeWeather, obstacles, interactables
     radius: 3.4
   });
 
-  // === 2. Cozy Plaza Campfire & Rest Bench ===
+  // === 2. Player's Own House Plot / Cottage (我的小屋) ===
+  const hx = MAIN_LANDMARKS.house.x;
+  const hz = MAIN_LANDMARKS.house.z;
+  const hy = getTerrainHeight(hx, hz);
+  const houseGroup = new THREE.Group();
+  houseGroup.position.set(hx, hy, hz);
+  houseGroup.rotation.y = MAIN_LANDMARKS.house.facing;
+  updateHouseExterior(houseGroup, initialHouseLevel, timeWeather);
+  root.add(houseGroup);
+  obstacles.push({ x: hx, z: hz, r: 3.3 });
+  interactables.push({
+    id: 'player_house',
+    type: 'house',
+    label: '我的小屋',
+    icon: '🏡',
+    x: hx + Math.sin(MAIN_LANDMARKS.house.facing) * 4.0,
+    z: hz + Math.cos(MAIN_LANDMARKS.house.facing) * 4.0,
+    radius: 3.6
+  });
+
+  // === 3. Breeze Archipelago Natural History Museum (微風自然博物館) ===
+  const mx = MAIN_LANDMARKS.museum.x;
+  const mz = MAIN_LANDMARKS.museum.z;
+  const my = getTerrainHeight(mx, mz);
+  const museum = new THREE.Group();
+  museum.position.set(mx, my, mz);
+  museum.rotation.y = MAIN_LANDMARKS.museum.facing;
+
+  const marbleMat = new THREE.MeshStandardMaterial({ color: 0xf6efe2, flatShading: true });
+  const domeMat = new THREE.MeshStandardMaterial({ color: 0x2a7f9e, flatShading: true });
+  const goldMat = new THREE.MeshStandardMaterial({ color: 0xf4c430, metalness: 0.4, roughness: 0.3, flatShading: true });
+
+  // Stone base steps
+  const steps = new THREE.Mesh(new THREE.BoxGeometry(8.8, 0.5, 6.4), marbleMat);
+  steps.position.y = 0.25;
+  steps.receiveShadow = true;
+  museum.add(steps);
+
+  // Main museum hall
+  const mBody = new THREE.Mesh(new THREE.BoxGeometry(8.0, 4.1, 5.4), marbleMat);
+  mBody.position.y = 2.55;
+  mBody.castShadow = true;
+  mBody.receiveShadow = true;
+  museum.add(mBody);
+
+  // Classical front colonnade pillars
+  for (const px of [-3.1, -1.5, 1.5, 3.1]) {
+    const col = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.34, 4.0, 8), marbleMat);
+    col.position.set(px, 2.5, 2.95);
+    col.castShadow = true;
+    museum.add(col);
+  }
+
+  // Pediment & Grand Teal Dome
+  const frieze = new THREE.Mesh(new THREE.BoxGeometry(8.6, 0.65, 6.4), marbleMat);
+  frieze.position.y = 4.75;
+  frieze.castShadow = true;
+  const dome = new THREE.Mesh(
+    new THREE.SphereGeometry(2.85, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.55),
+    domeMat
+  );
+  dome.position.y = 4.95;
+  dome.castShadow = true;
+  const crest = new THREE.Mesh(new THREE.OctahedronGeometry(0.55, 0), goldMat);
+  crest.position.set(0, 7.95, 0);
+  animatedProps.push({ type: 'crystal', mesh: crest, baseY: 7.95 });
+  museum.add(frieze, dome, crest);
+
+  // Grand double doors
+  const mDoor = new THREE.Mesh(
+    new THREE.BoxGeometry(1.9, 2.5, 0.22),
+    new THREE.MeshStandardMaterial({ color: 0x5c3c24, flatShading: true })
+  );
+  mDoor.position.set(0, 1.75, 2.75);
+  museum.add(mDoor);
+
+  // Glowing museum entry ring
+  const mRing = new THREE.Mesh(
+    new THREE.RingGeometry(1.2, 1.55, 24),
+    new THREE.MeshBasicMaterial({ color: 0x48bfe3, side: THREE.DoubleSide, transparent: true, opacity: 0.78 })
+  );
+  mRing.rotation.x = -Math.PI / 2;
+  mRing.position.set(0, 0.1, 4.7);
+  museum.add(mRing);
+  animatedProps.push({ type: 'pulse', mesh: mRing });
+
+  root.add(museum);
+  obstacles.push({ x: mx, z: mz, r: 4.9 });
+  interactables.push({
+    id: 'museum_entrance',
+    type: 'museum',
+    label: '微風自然博物館',
+    icon: '🏛️',
+    x: mx + Math.sin(MAIN_LANDMARKS.museum.facing) * 5.0,
+    z: mz + Math.cos(MAIN_LANDMARKS.museum.facing) * 5.0,
+    radius: 3.8
+  });
+
+  // === 4. Cozy Plaza & Rest Bench ===
   const plazaX = -1.5;
   const plazaZ = 3.2;
   const plazaY = getTerrainHeight(plazaX, plazaZ);
@@ -397,9 +658,8 @@ function _buildMainIslandProps(scene, isl, timeWeather, obstacles, interactables
   );
   stonePlaza.position.set(plazaX, plazaY + 0.02, plazaZ);
   stonePlaza.receiveShadow = true;
-  scene.add(stonePlaza);
+  root.add(stonePlaza);
 
-  // Rest Bench (for changing time/weather!)
   const benchX = -4.2;
   const benchZ = 2.0;
   const benchY = getTerrainHeight(benchX, benchZ);
@@ -418,7 +678,7 @@ function _buildMainIslandProps(scene, isl, timeWeather, obstacles, interactables
     leg.position.set(lx, 0.31, 0);
     bench.add(leg);
   }
-  scene.add(bench);
+  root.add(bench);
   obstacles.push({ x: benchX, z: benchZ, r: 1.25 });
   interactables.push({
     id: 'rest_bench',
@@ -430,7 +690,6 @@ function _buildMainIslandProps(scene, isl, timeWeather, obstacles, interactables
     radius: 3.2
   });
 
-  // Glowing Plaza Lantern Post
   const lampPost = new THREE.Group();
   lampPost.position.set(plazaX + 2.6, plazaY, plazaZ + 2.2);
   const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.15, 3.2, 6), trimMat);
@@ -440,55 +699,58 @@ function _buildMainIslandProps(scene, isl, timeWeather, obstacles, interactables
   const bulb = new THREE.Mesh(new THREE.DodecahedronGeometry(0.36, 0), bulbMat);
   bulb.position.y = 3.35;
   lampPost.add(pole, bulb);
-  scene.add(lampPost);
+  root.add(lampPost);
   obstacles.push({ x: plazaX + 2.6, z: plazaZ + 2.2, r: 0.5 });
 
-  // === 3. Trees, Flowers, Rocks on Main Island ===
+  // === 5. Trees, Flowers, Rocks on Main Island (cleared around House & Museum) ===
   const rand = seededRandom(101);
   const treeSpots = [
-    [-22, 6], [-18, 16], [-10, 19], [-24, -4], [-21, -16],
-    [-8, -22], [3, -23], [16, -18], [23, -8], [24, 5],
-    [18, 16], [12, 21], [-2, -17], [17, 4], [-15, 12]
+    [-25, 4], [-10, 22], [-25, -5], [-22, -16],
+    [16, -18], [23, -8], [24, 5], [18, 16],
+    [12, 21], [17, 4], [7, -25], [-16, -24]
   ];
   treeSpots.forEach(([tx, tz], idx) => {
+    if (Math.hypot(tx - hx, tz - hz) < 7.0) return;
+    if (Math.hypot(tx - mx, tz - mz) < 8.0) return;
     const h = getTerrainHeight(tx, tz);
     if (h < 0.85 || getPondAt(tx, tz)) return;
     const scale = 0.85 + rand() * 0.4;
     const tree = idx % 3 === 0 ? _createPineTree(scale) : _createOakTree(scale, idx % 2 ? 0x52a858 : 0x66b85a);
     tree.position.set(tx, h - 0.1, tz);
     tree.rotation.y = rand() * Math.PI * 2;
-    scene.add(tree);
+    root.add(tree);
     obstacles.push({ x: tx, z: tz, r: 0.95 * scale });
   });
 
-  // Flower meadows
   const flowerColors = [0xff758f, 0xffd166, 0xffffff, 0x90e0ef, 0xff9f1c];
   for (let i = 0; i < 24; i++) {
     const ang = rand() * Math.PI * 2;
-    const rad = 8 + rand() * 20;
+    const rad = 8 + rand() * 21;
     const fx = Math.cos(ang) * rad;
     const fz = Math.sin(ang) * rad;
     if (Math.hypot(fx - shopX, fz - shopZ) < 6.5) continue;
+    if (Math.hypot(fx - hx, fz - hz) < 6.5) continue;
+    if (Math.hypot(fx - mx, fz - mz) < 7.5) continue;
     const h = getTerrainHeight(fx, fz);
     if (h < 1.0 || getPondAt(fx, fz)) continue;
     const f = _createFlowerPatch(flowerColors[i % flowerColors.length]);
     f.position.set(fx, h, fz);
-    scene.add(f);
+    root.add(f);
   }
 
-  // Coastal rocks
-  for (const [rx, rz, sc] of [[-26, 15, 1.2], [25, -15, 1.3], [19, 23, 0.95], [-19, -23, 1.1]]) {
+  for (const [rx, rz, sc] of [[-28, 15, 1.2], [25, -15, 1.3], [19, 23, 0.95], [-21, -24, 1.1]]) {
     const h = getTerrainHeight(rx, rz);
     const rock = _createRock(sc);
     rock.position.set(rx, h + 0.2, rz);
-    scene.add(rock);
+    root.add(rock);
     obstacles.push({ x: rx, z: rz, r: 0.9 * sc });
   }
+
+  return houseGroup;
 }
 
-function _buildCoconutIslandProps(scene, isl, timeWeather, obstacles, animatedProps) {
+function _buildCoconutIslandProps(root, isl, timeWeather, obstacles, animatedProps) {
   const rand = seededRandom(202);
-  // Palm trees
   for (let i = 0; i < 13; i++) {
     const ang = (i / 13) * Math.PI * 2 + rand() * 0.3;
     const rad = 8 + rand() * 12;
@@ -499,11 +761,10 @@ function _buildCoconutIslandProps(scene, isl, timeWeather, obstacles, animatedPr
     const palm = _createPalmTree(0.9 + rand() * 0.35);
     palm.position.set(tx, h - 0.1, tz);
     palm.rotation.y = rand() * Math.PI * 2;
-    scene.add(palm);
+    root.add(palm);
     obstacles.push({ x: tx, z: tz, r: 0.75 });
   }
 
-  // Beach Umbrella & Towel near center-south
   const ux = isl.x - 2;
   const uz = isl.z + 8;
   const uy = getTerrainHeight(ux, uz);
@@ -527,10 +788,9 @@ function _buildCoconutIslandProps(scene, isl, timeWeather, obstacles, animatedPr
   towel.position.set(1.2, 0.04, 0.4);
   towel.rotation.y = 0.25;
   umbrella.add(pole, top, towel);
-  scene.add(umbrella);
+  root.add(umbrella);
   obstacles.push({ x: ux, z: uz, r: 0.6 });
 
-  // Tiki Torches
   const flameMat = new THREE.MeshStandardMaterial({
     color: 0xffb703,
     emissive: 0xff6d00,
@@ -551,11 +811,10 @@ function _buildCoconutIslandProps(scene, isl, timeWeather, obstacles, animatedPr
     const flame = new THREE.Mesh(new THREE.OctahedronGeometry(0.28, 0), flameMat);
     flame.position.y = 2.3;
     torch.add(stick, flame);
-    scene.add(torch);
+    root.add(torch);
     animatedProps.push({ type: 'bob', mesh: flame, baseY: 2.3, speed: 4.5, amp: 0.08 });
   }
 
-  // Tropical Hibiscus & Starfish
   for (let i = 0; i < 16; i++) {
     const a = rand() * Math.PI * 2;
     const r = 5 + rand() * 14;
@@ -565,14 +824,13 @@ function _buildCoconutIslandProps(scene, isl, timeWeather, obstacles, animatedPr
     if (fh < 0.7) continue;
     const f = _createFlowerPatch(i % 2 ? 0xff4d6d : 0xffbe0b);
     f.position.set(fx, fh, fz);
-    scene.add(f);
+    root.add(f);
   }
 }
 
-function _buildSakuraIslandProps(scene, isl, timeWeather, obstacles) {
+function _buildSakuraIslandProps(root, isl, timeWeather, obstacles) {
   const rand = seededRandom(303);
 
-  // Red Wooden Torii Gate
   const gx = isl.x + 8;
   const gz = isl.z + 5;
   const gy = getTerrainHeight(gx, gz);
@@ -595,11 +853,10 @@ function _buildSakuraIslandProps(scene, isl, timeWeather, obstacles) {
   const beam2 = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.25, 0.36), redMat);
   beam2.position.y = 3.45;
   torii.add(beam1, cap, beam2);
-  scene.add(torii);
+  root.add(torii);
   obstacles.push({ x: gx - 1.3, z: gz + 1.0, r: 0.45 });
   obstacles.push({ x: gx + 1.3, z: gz - 1.0, r: 0.45 });
 
-  // Stone Lanterns
   const stoneMat = new THREE.MeshStandardMaterial({ color: 0xb7b7a4, flatShading: true });
   const glowMat = new THREE.MeshStandardMaterial({ color: 0xfff3b0, emissive: 0xffb703, emissiveIntensity: 0.65 });
   timeWeather.registerNightMaterial(glowMat, 1.5);
@@ -617,11 +874,10 @@ function _buildSakuraIslandProps(scene, isl, timeWeather, obstacles) {
     const roof = new THREE.Mesh(new THREE.ConeGeometry(0.68, 0.45, 6), stoneMat);
     roof.position.y = 2.15;
     lan.add(base, core, roof);
-    scene.add(lan);
+    root.add(lan);
     obstacles.push({ x: lx, z: lz, r: 0.55 });
   }
 
-  // Sakura Trees & Bamboo
   for (let i = 0; i < 12; i++) {
     const a = (i / 12) * Math.PI * 2 + rand() * 0.25;
     const r = 10 + rand() * 11;
@@ -632,11 +888,10 @@ function _buildSakuraIslandProps(scene, isl, timeWeather, obstacles) {
     const obj = i % 3 === 0 ? _createBambooCluster() : _createSakuraTree(0.85 + rand() * 0.35);
     obj.position.set(tx, th - 0.1, tz);
     obj.rotation.y = rand() * Math.PI * 2;
-    scene.add(obj);
+    root.add(obj);
     obstacles.push({ x: tx, z: tz, r: 0.9 });
   }
 
-  // Pink flowers
   for (let i = 0; i < 14; i++) {
     const a = rand() * Math.PI * 2;
     const r = 7 + rand() * 13;
@@ -646,11 +901,11 @@ function _buildSakuraIslandProps(scene, isl, timeWeather, obstacles) {
     if (fh < 0.9 || getPondAt(fx, fz)) continue;
     const f = _createFlowerPatch(i % 2 ? 0xffb3c6 : 0xffffff);
     f.position.set(fx, fh, fz);
-    scene.add(f);
+    root.add(f);
   }
 }
 
-function _buildRuinsIslandProps(scene, isl, timeWeather, obstacles, animatedProps) {
+function _buildRuinsIslandProps(root, isl, timeWeather, obstacles, animatedProps) {
   const rand = seededRandom(404);
   const stoneMat = new THREE.MeshStandardMaterial({ color: 0x8d9996, flatShading: true, roughness: 0.95 });
   const crystalMat = new THREE.MeshStandardMaterial({
@@ -662,7 +917,6 @@ function _buildRuinsIslandProps(scene, isl, timeWeather, obstacles, animatedProp
   });
   timeWeather.registerNightMaterial(crystalMat, 1.75);
 
-  // Ancient Stone Archway & Altar at center
   const ax = isl.x - 1;
   const az = isl.z - 2;
   const ay = getTerrainHeight(ax, az);
@@ -674,14 +928,12 @@ function _buildRuinsIslandProps(scene, isl, timeWeather, obstacles, animatedProp
   dais.receiveShadow = true;
   altar.add(dais);
 
-  // Floating Starlight Crystal above altar
   const mainCrystal = new THREE.Mesh(new THREE.OctahedronGeometry(1.15, 0), crystalMat);
   mainCrystal.scale.set(0.75, 1.45, 0.75);
   mainCrystal.position.y = 3.2;
   altar.add(mainCrystal);
   animatedProps.push({ type: 'crystal', mesh: mainCrystal, baseY: 3.2 });
 
-  // Surrounding mossy pillars
   for (let i = 0; i < 6; i++) {
     const a = (i / 6) * Math.PI * 2;
     const px = Math.cos(a) * 5.6;
@@ -693,9 +945,8 @@ function _buildRuinsIslandProps(scene, isl, timeWeather, obstacles, animatedProp
     altar.add(pillar);
     obstacles.push({ x: ax + px, z: az + pz, r: 0.65 });
   }
-  scene.add(altar);
+  root.add(altar);
 
-  // Scattered crystals & dark pines
   for (let i = 0; i < 10; i++) {
     const a = (i / 10) * Math.PI * 2 + 0.3;
     const r = 11 + rand() * 9;
@@ -707,19 +958,234 @@ function _buildRuinsIslandProps(scene, isl, timeWeather, obstacles, animatedProp
       const crys = new THREE.Mesh(new THREE.OctahedronGeometry(0.65, 0), crystalMat);
       crys.scale.set(0.65, 1.6, 0.65);
       crys.position.set(tx, th + 0.9, tz);
-      scene.add(crys);
+      root.add(crys);
       animatedProps.push({ type: 'crystal', mesh: crys, baseY: th + 0.9 });
       obstacles.push({ x: tx, z: tz, r: 0.65 });
     } else {
       const pine = _createPineTree(0.9 + rand() * 0.35, 0x2d6a5e);
       pine.position.set(tx, th - 0.1, tz);
-      scene.add(pine);
+      root.add(pine);
       obstacles.push({ x: tx, z: tz, r: 0.9 });
     }
   }
 }
 
-function _buildSkyClouds(scene, animatedProps) {
+function _buildJungleIslandProps(root, isl, timeWeather, obstacles, animatedProps) {
+  const rand = seededRandom(505);
+
+  // Towering rainforest trees & palms
+  for (let i = 0; i < 15; i++) {
+    const a = (i / 15) * Math.PI * 2 + rand() * 0.2;
+    const r = 10 + rand() * 12;
+    const tx = isl.x + Math.cos(a) * r;
+    const tz = isl.z + Math.sin(a) * r;
+    const th = getTerrainHeight(tx, tz);
+    if (th < 0.9 || getPondAt(tx, tz)) continue;
+    const tree = i % 3 === 0 ? _createPalmTree(1.05 + rand() * 0.25) : _createJungleTree(0.85 + rand() * 0.4);
+    tree.position.set(tx, th - 0.1, tz);
+    tree.rotation.y = rand() * Math.PI * 2;
+    root.add(tree);
+    obstacles.push({ x: tx, z: tz, r: 0.95 });
+  }
+
+  // Mossy beetle logs (prime atmosphere for Hercules & Atlas beetles!)
+  const logMat = new THREE.MeshStandardMaterial({ color: 0x6b4423, flatShading: true });
+  for (const [ox, oz, rot] of [[-7, -5, 0.5], [10, 8, -0.4], [-3, 12, 1.1]]) {
+    const lx = isl.x + ox;
+    const lz = isl.z + oz;
+    const lh = getTerrainHeight(lx, lz);
+    if (lh < 0.8 || getPondAt(lx, lz)) continue;
+    const log = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.48, 3.6, 7), logMat);
+    log.rotation.z = Math.PI / 2;
+    log.rotation.y = rot;
+    log.position.set(lx, lh + 0.35, lz);
+    log.castShadow = true;
+    root.add(log);
+    obstacles.push({ x: lx, z: lz, r: 1.1 });
+  }
+
+  // Glowing jungle mushrooms
+  const mushGlow = new THREE.MeshStandardMaterial({
+    color: 0x80ffdb,
+    emissive: 0x48bfe3,
+    emissiveIntensity: 0.65,
+    flatShading: true
+  });
+  timeWeather.registerNightMaterial(mushGlow, 1.5);
+  const stemMat = new THREE.MeshStandardMaterial({ color: 0xf4ead5, flatShading: true });
+  for (const [ox, oz] of [[-12, 3], [2, -13], [13, -6], [-10, -11]]) {
+    const mx = isl.x + ox;
+    const mz = isl.z + oz;
+    const mh = getTerrainHeight(mx, mz);
+    if (mh < 0.85 || getPondAt(mx, mz)) continue;
+    const mg = new THREE.Group();
+    mg.position.set(mx, mh, mz);
+    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.2, 0.85, 6), stemMat);
+    stem.position.y = 0.42;
+    const cap = new THREE.Mesh(new THREE.ConeGeometry(0.65, 0.45, 7), mushGlow);
+    cap.position.y = 0.92;
+    mg.add(stem, cap);
+    root.add(mg);
+    animatedProps.push({ type: 'bob', mesh: cap, baseY: 0.92, speed: 2.2, amp: 0.04 });
+  }
+
+  // Lush tropical flowers
+  for (let i = 0; i < 18; i++) {
+    const a = rand() * Math.PI * 2;
+    const r = 6 + rand() * 15;
+    const fx = isl.x + Math.cos(a) * r;
+    const fz = isl.z + Math.sin(a) * r;
+    const fh = getTerrainHeight(fx, fz);
+    if (fh < 0.85 || getPondAt(fx, fz)) continue;
+    const f = _createFlowerPatch(i % 2 ? 0xff9f1c : 0xe056fd);
+    f.position.set(fx, fh, fz);
+    root.add(f);
+  }
+}
+
+function _buildVolcanoIslandProps(root, isl, timeWeather, obstacles, animatedProps) {
+  const rand = seededRandom(606);
+  const rockMat = new THREE.MeshStandardMaterial({ color: 0x8d4b32, flatShading: true, roughness: 0.95 });
+  const lavaMat = new THREE.MeshStandardMaterial({
+    color: 0xff9f1c,
+    emissive: 0xff5400,
+    emissiveIntensity: 0.9,
+    flatShading: true
+  });
+  timeWeather.registerNightMaterial(lavaMat, 1.8);
+
+  // Scenic Volcanic Peak on northeast edge of island
+  const px = isl.x + 8;
+  const pz = isl.z - 8;
+  const py = getTerrainHeight(px, pz);
+  const peak = new THREE.Mesh(new THREE.ConeGeometry(5.6, 8.2, 7), rockMat);
+  peak.position.set(px, py + 3.6, pz);
+  peak.castShadow = true;
+  const lavaTip = new THREE.Mesh(new THREE.DodecahedronGeometry(1.25, 0), lavaMat);
+  lavaTip.position.set(px, py + 7.5, pz);
+  root.add(peak, lavaTip);
+  obstacles.push({ x: px, z: pz, r: 4.5 });
+  animatedProps.push({ type: 'bob', mesh: lavaTip, baseY: py + 7.5, speed: 3.0, amp: 0.14 });
+
+  // Hot Spring Boulders & Glowing Amber Crystals
+  for (let i = 0; i < 11; i++) {
+    const a = (i / 11) * Math.PI * 2 + rand() * 0.25;
+    const r = 9 + rand() * 10;
+    const rx = isl.x + Math.cos(a) * r;
+    const rz = isl.z + Math.sin(a) * r;
+    if (Math.hypot(rx - px, rz - pz) < 6.5) continue;
+    const rh = getTerrainHeight(rx, rz);
+    if (rh < 0.8 || getPondAt(rx, rz)) continue;
+
+    if (i % 3 === 0) {
+      // Desert cactus!
+      const cactMat = new THREE.MeshStandardMaterial({ color: 0x4f9d5a, flatShading: true });
+      const cg = new THREE.Group();
+      cg.position.set(rx, rh, rz);
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.3, 2.2, 6), cactMat);
+      trunk.position.y = 1.1;
+      const armL = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.18, 0.95, 5), cactMat);
+      armL.position.set(-0.36, 1.35, 0);
+      armL.rotation.z = 0.55;
+      const armR = armL.clone();
+      armR.position.set(0.36, 1.1, 0);
+      armR.rotation.z = -0.55;
+      cg.add(trunk, armL, armR);
+      root.add(cg);
+      obstacles.push({ x: rx, z: rz, r: 0.65 });
+    } else if (i % 3 === 1) {
+      const crys = new THREE.Mesh(new THREE.OctahedronGeometry(0.6, 0), lavaMat);
+      crys.scale.set(0.7, 1.5, 0.7);
+      crys.position.set(rx, rh + 0.85, rz);
+      root.add(crys);
+      animatedProps.push({ type: 'crystal', mesh: crys, baseY: rh + 0.85 });
+      obstacles.push({ x: rx, z: rz, r: 0.65 });
+    } else {
+      const rock = _createRock(1.1 + rand() * 0.5, 0x9c553b);
+      rock.position.set(rx, rh + 0.25, rz);
+      root.add(rock);
+      obstacles.push({ x: rx, z: rz, r: 1.05 });
+    }
+  }
+}
+
+function _buildGlacierIslandProps(root, isl, timeWeather, obstacles, animatedProps) {
+  const rand = seededRandom(707);
+  const iceMat = new THREE.MeshStandardMaterial({
+    color: 0xade8f4,
+    emissive: 0x48cae4,
+    emissiveIntensity: 0.6,
+    roughness: 0.2,
+    flatShading: true
+  });
+  timeWeather.registerNightMaterial(iceMat, 1.65);
+
+  // Central Aurora Ice Spire
+  const ax = isl.x - 4;
+  const az = isl.z - 6;
+  const ay = getTerrainHeight(ax, az);
+  const spire = new THREE.Mesh(new THREE.ConeGeometry(1.9, 6.2, 6), iceMat);
+  spire.position.set(ax, ay + 3.0, az);
+  spire.castShadow = true;
+  const orb = new THREE.Mesh(new THREE.OctahedronGeometry(0.85, 0), iceMat);
+  orb.position.set(ax, ay + 6.9, az);
+  root.add(spire, orb);
+  obstacles.push({ x: ax, z: az, r: 2.0 });
+  animatedProps.push({ type: 'crystal', mesh: orb, baseY: ay + 6.9 });
+
+  // Snow-capped pines & ice boulders
+  for (let i = 0; i < 13; i++) {
+    const a = (i / 13) * Math.PI * 2 + rand() * 0.2;
+    const r = 9 + rand() * 11;
+    const tx = isl.x + Math.cos(a) * r;
+    const tz = isl.z + Math.sin(a) * r;
+    if (Math.hypot(tx - ax, tz - az) < 4.5) continue;
+    const th = getTerrainHeight(tx, tz);
+    if (th < 0.85 || getPondAt(tx, tz)) continue;
+
+    if (i % 4 === 0) {
+      const ice = new THREE.Mesh(new THREE.DodecahedronGeometry(0.95, 0), iceMat);
+      ice.scale.set(0.9, 1.5, 0.9);
+      ice.position.set(tx, th + 0.8, tz);
+      root.add(ice);
+      obstacles.push({ x: tx, z: tz, r: 0.9 });
+    } else {
+      const pine = _createPineTree(0.9 + rand() * 0.35, 0x2d6a6a, true);
+      pine.position.set(tx, th - 0.1, tz);
+      root.add(pine);
+      obstacles.push({ x: tx, z: tz, r: 0.9 });
+    }
+  }
+
+  // Cute Snowman near dock!
+  const smx = isl.x + 3;
+  const smz = isl.z + 11;
+  const smh = getTerrainHeight(smx, smz);
+  const snowMat = new THREE.MeshStandardMaterial({ color: 0xffffff, flatShading: true });
+  const sm = new THREE.Group();
+  sm.position.set(smx, smh, smz);
+  const b1 = new THREE.Mesh(new THREE.SphereGeometry(0.65, 8, 6), snowMat);
+  b1.position.y = 0.55;
+  const b2 = new THREE.Mesh(new THREE.SphereGeometry(0.45, 8, 6), snowMat);
+  b2.position.y = 1.4;
+  const nose = new THREE.Mesh(
+    new THREE.ConeGeometry(0.08, 0.35, 5),
+    new THREE.MeshStandardMaterial({ color: 0xf48c25 })
+  );
+  nose.rotation.x = Math.PI / 2;
+  nose.position.set(0, 1.42, 0.5);
+  const scarf = new THREE.Mesh(
+    new THREE.TorusGeometry(0.38, 0.09, 5, 10),
+    new THREE.MeshStandardMaterial({ color: 0xe63946 })
+  );
+  scarf.rotation.x = Math.PI / 2;
+  scarf.position.y = 1.05;
+  sm.add(b1, b2, nose, scarf);
+  root.add(sm);
+  obstacles.push({ x: smx, z: smz, r: 0.75 });
+}
+
+function _buildSkyClouds(root, animatedProps) {
   const mat = new THREE.MeshStandardMaterial({
     color: 0xffffff,
     roughness: 1,
@@ -727,7 +1193,7 @@ function _buildSkyClouds(scene, animatedProps) {
     transparent: true,
     opacity: 0.9
   });
-  for (let i = 0; i < 14; i++) {
+  for (let i = 0; i < 18; i++) {
     const g = new THREE.Group();
     const parts = 3 + (i % 3);
     for (let j = 0; j < parts; j++) {
@@ -736,11 +1202,11 @@ function _buildSkyClouds(scene, animatedProps) {
       puff.scale.set(1.2, 0.62, 0.95);
       g.add(puff);
     }
-    const cx = (Math.random() - 0.5) * 320;
-    const cz = (Math.random() - 0.5) * 320;
-    const cy = 28 + Math.random() * 14;
+    const cx = (Math.random() - 0.5) * 420;
+    const cz = (Math.random() - 0.5) * 420;
+    const cy = 29 + Math.random() * 14;
     g.position.set(cx, cy, cz);
-    scene.add(g);
+    root.add(g);
     animatedProps.push({ type: 'cloud', mesh: g, speed: 0.7 + Math.random() * 0.9 });
   }
 }
@@ -758,7 +1224,7 @@ export function updateAnimatedProps(animatedProps, dt, time) {
       p.mesh.scale.set(s, s, 1);
     } else if (p.type === 'cloud') {
       p.mesh.position.x += p.speed * dt;
-      if (p.mesh.position.x > 180) p.mesh.position.x = -180;
+      if (p.mesh.position.x > 220) p.mesh.position.x = -220;
     }
   }
 }

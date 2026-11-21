@@ -254,7 +254,7 @@ export class FishSystem {
   update(dt, time, camera, playerPos, rodTipPos, isHoldingAction, rodLevel, isNight, isRain, luckBonus, audio, onCaught, onEscaped) {
     // 1. Spawn ambient fish shadows around islands & ponds
     this.spawnTimer -= dt;
-    if (this.spawnTimer <= 0 && this.shadows.length < 22) {
+    if (this.spawnTimer <= 0 && this.shadows.length < 36) {
       this.spawnTimer = 1.6;
       for (const isl of ISLANDS) {
         // Sea fish around island coastline

@@ -109,8 +109,17 @@ export class AmbientAnimalsSystem {
       // Sakura island fox cubs
       { type: 'fox', island: ISLANDS[2], x: -88 + 10, z: -66 - 8 },
       { type: 'duck', island: ISLANDS[2], x: -88 - 12, z: -66 + 4 },
-      // Ruins island mystical white fox
-      { type: 'fox', island: ISLANDS[3], x: 86 - 10, z: -82 - 8 }
+      // Ruins island mystical fox
+      { type: 'fox', island: ISLANDS[3], x: 86 - 10, z: -82 - 8 },
+      // Emerald Jungle critters
+      { type: 'chick', island: ISLANDS[4], x: -98 + 12, z: 74 + 6, color: 0x70e000 },
+      { type: 'duck', island: ISLANDS[4], x: -98 + 2, z: 74 - 12 },
+      // Red Rock Volcano critters
+      { type: 'crab', island: ISLANDS[5], x: 148 - 11, z: -6 - 7 },
+      { type: 'fox', island: ISLANDS[5], x: 148 + 3, z: -6 + 11 },
+      // Aurora Glacier critters
+      { type: 'chick', island: ISLANDS[6], x: -6 + 9, z: -140 - 6, color: 0xdaf4ff },
+      { type: 'fox', island: ISLANDS[6], x: -6 - 10, z: -140 - 6 }
     ];
 
     for (const s of specs) {
@@ -140,7 +149,7 @@ export class AmbientAnimalsSystem {
 
   _spawnSeagulls() {
     const white = new THREE.MeshStandardMaterial({ color: 0xffffff, flatShading: true });
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 9; i++) {
       const g = new THREE.Group();
       const body = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.9, 5), white);
       body.rotation.x = Math.PI / 2;

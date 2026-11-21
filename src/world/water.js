@@ -8,7 +8,7 @@ export class WaterSystem {
     this.wakeTimer = 0;
 
     // Stylized low-poly ocean plane
-    const geo = new THREE.PlaneGeometry(540, 540, 68, 68);
+    const geo = new THREE.PlaneGeometry(780, 780, 76, 76);
     geo.rotateX(-Math.PI / 2);
     this.baseY = new Float32Array(geo.attributes.position.count);
     for (let i = 0; i < this.baseY.length; i++) {
@@ -29,7 +29,7 @@ export class WaterSystem {
     scene.add(this.ocean);
 
     // Deep seabed plane beneath ocean so water has rich turquoise depth
-    const bedGeo = new THREE.PlaneGeometry(560, 560);
+    const bedGeo = new THREE.PlaneGeometry(800, 800);
     bedGeo.rotateX(-Math.PI / 2);
     const bedMat = new THREE.MeshBasicMaterial({ color: 0x13596e });
     const bed = new THREE.Mesh(bedGeo, bedMat);
@@ -44,14 +44,20 @@ export class WaterSystem {
       this.foamRings.push({ mesh: ring, seed: isl.seed });
     }
 
-    // Freshwater pond water discs
+    // Freshwater / hot-spring / glacial pond water discs
     this.pondMeshes = [];
+    const pondColors = {
+      ruins: 0x38b6c9,
+      volcano: 0x56e0d8,
+      glacier: 0x7bdff2,
+      jungle: 0x2fa886
+    };
     for (const isl of ISLANDS) {
       if (!isl.pond) continue;
       const pGeo = new THREE.CircleGeometry(isl.pond.radius * 1.18, 24);
       pGeo.rotateX(-Math.PI / 2);
       const pMat = new THREE.MeshStandardMaterial({
-        color: isl.id === 'ruins' ? 0x38b6c9 : 0x3ec1c9,
+        color: pondColors[isl.id] || 0x3ec1c9,
         roughness: 0.2,
         metalness: 0.1,
         transparent: true,

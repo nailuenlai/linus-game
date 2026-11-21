@@ -125,15 +125,15 @@ export class HudManager {
       this.btnPrimary.className = 'action-btn primary' + (primary.mode ? ` mode-${primary.mode}` : '');
     }
 
-    const sKey = secondary ? `${secondary.icon}|${secondary.label}` : 'none';
+    const sKey = secondary ? `${secondary.icon}|${secondary.label}|${secondary.extraClass || ''}` : 'none';
     if (sKey !== this.lastSecondaryKey) {
       this.lastSecondaryKey = sKey;
       if (secondary) {
-        this.btnSecondary.classList.remove('hidden');
+        this.btnSecondary.className = 'action-btn secondary' + (secondary.extraClass ? ` ${secondary.extraClass}` : '');
         this.elSecondaryIcon.textContent = secondary.icon;
         this.elSecondaryLabel.textContent = secondary.label;
       } else {
-        this.btnSecondary.classList.add('hidden');
+        this.btnSecondary.className = 'action-btn secondary hidden';
       }
     }
   }
@@ -142,12 +142,12 @@ export class HudManager {
     const ctx = canvas.getContext('2d');
     const w = canvas.width;
     const h = canvas.height;
-    const scale = w / 290; // Covers [-145..+145] nicely
-    const cx = w / 2;
-    const cy = h / 2;
+    const scale = w / 405; // Covers all 7 islands cleanly
+    const cx = w * 0.46;
+    const cy = h * 0.56;
 
     // Ocean gradient
-    const grad = ctx.createRadialGradient(cx, cy, 10, cx, cy, w * 0.65);
+    const grad = ctx.createRadialGradient(cx, cy, 10, cx, cy, w * 0.72);
     grad.addColorStop(0, '#36a8bd');
     grad.addColorStop(1, '#1d6f85');
     ctx.fillStyle = grad;
@@ -156,7 +156,7 @@ export class HudManager {
     // Subtle sea rings
     ctx.strokeStyle = 'rgba(255,255,255,0.12)';
     ctx.lineWidth = 1;
-    for (const r of [50, 95, 130]) {
+    for (const r of [60, 120, 175]) {
       ctx.beginPath();
       ctx.arc(cx, cy, r * scale, 0, Math.PI * 2);
       ctx.stroke();

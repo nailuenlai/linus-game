@@ -151,8 +151,8 @@ export class BoatEntity {
 
       const vx = Math.sin(this.yaw) * this.speed * dt;
       const vz = Math.cos(this.yaw) * this.speed * dt;
-      const nx = Math.max(-185, Math.min(185, this.x + vx));
-      const nz = Math.max(-185, Math.min(185, this.z + vz));
+      const nx = Math.max(-245, Math.min(245, this.x + vx));
+      const nz = Math.max(-245, Math.min(245, this.z + vz));
 
       // Keep boat in water (prevent beaching far inland)
       if (getTerrainHeight(nx, nz) < -0.08) {

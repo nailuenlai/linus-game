@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { getTerrainHeight, getPondAt } from '../data/islands.js';
+import { getTerrainHeight, getPondAt, isPointOnAnyDock } from '../data/islands.js';
 import { COSMETIC_MAP } from '../data/shopItems.js';
 
 export class PlayerEntity {
@@ -236,7 +236,7 @@ export class PlayerEntity {
     return localTip.applyMatrix4(this.group.matrixWorld);
   }
 
-  update(dt, moveVec, obstacles, audio, locked = false) {
+  update(dt, moveVec, obstacles, audio, locked = false, isSneaking = false, roomBounds = null) {
     if (this.inBoat) {
       this.legL.rotation.x = -1.2;
       this.legR.rotation.x = -1.2;
@@ -245,11 +245,12 @@ export class PlayerEntity {
       return;
     }
 
+    const activeSpeed = isSneaking ? this.speed * 0.36 : this.speed;
     let moving = false;
     if (!locked && moveVec.mag > 0.08) {
       moving = true;
-      const dx = moveVec.x * this.speed * dt;
-      const dz = moveVec.z * this.speed * dt;
+      const dx = moveVec.x * activeSpeed * dt;
+      const dz = moveVec.z * activeSpeed * dt;
 
       let nx = this.x + dx;
       let nz = this.z + dz;
@@ -259,7 +260,7 @@ export class PlayerEntity {
         const odx = nx - obs.x;
         const odz = nz - obs.z;
         const dist = Math.hypot(odx, odz);
-        const minR = obs.r + 0.55;
+        const minR = obs.r + 0.52;
         if (dist < minR && dist > 0.001) {
           const push = (minR - dist) / dist;
           nx += odx * push;
@@ -267,22 +268,27 @@ export class PlayerEntity {
         }
       }
 
-      // Keep player out of deep water & ponds (can wade slightly onto wet sand / dock)
-      const h = getTerrainHeight(nx, nz);
-      const inPond = getPondAt(nx, nz);
-      const onPier = this._isOnAnyPier(nx, nz);
-      if ((h > 0.14 && !inPond) || onPier) {
-        this.x = nx;
-        this.z = nz;
+      if (roomBounds) {
+        // Indoor clamping
+        this.x = Math.max(roomBounds.minX, Math.min(roomBounds.maxX, nx));
+        this.z = Math.max(roomBounds.minZ, Math.min(roomBounds.maxZ, nz));
       } else {
-        // Try sliding along X or Z independently for buttery movement along beaches
-        const hx = getTerrainHeight(nx, this.z);
-        if ((hx > 0.14 && !getPondAt(nx, this.z)) || this._isOnAnyPier(nx, this.z)) {
+        // Keep player out of deep water & ponds (can walk on wet sand & any island dock)
+        const h = getTerrainHeight(nx, nz);
+        const inPond = getPondAt(nx, nz);
+        const onPier = this._isOnAnyPier(nx, nz);
+        if ((h > 0.14 && !inPond) || onPier) {
           this.x = nx;
-        }
-        const hz = getTerrainHeight(this.x, nz);
-        if ((hz > 0.14 && !getPondAt(this.x, nz)) || this._isOnAnyPier(this.x, nz)) {
           this.z = nz;
+        } else {
+          const hx = getTerrainHeight(nx, this.z);
+          if ((hx > 0.14 && !getPondAt(nx, this.z)) || this._isOnAnyPier(nx, this.z)) {
+            this.x = nx;
+          }
+          const hz = getTerrainHeight(this.x, nz);
+          if ((hz > 0.14 && !getPondAt(this.x, nz)) || this._isOnAnyPier(this.x, nz)) {
+            this.z = nz;
+          }
         }
       }
 
@@ -292,35 +298,44 @@ export class PlayerEntity {
       while (diff < -Math.PI) diff += Math.PI * 2;
       this.yaw += diff * Math.min(1, dt * 13);
 
-      this.walkPhase += dt * 11 * moveVec.mag;
+      this.walkPhase += dt * (isSneaking ? 6.5 : 11) * moveVec.mag;
       this.stepCooldown -= dt;
-      if (this.stepCooldown <= 0) {
+      if (this.stepCooldown <= 0 && !isSneaking) {
         audio.playStep();
         this.stepCooldown = 0.28;
       }
     }
 
-    // Ground height (or wooden pier height)
-    const groundH = getTerrainHeight(this.x, this.z);
-    const pierH = this._isOnAnyPier(this.x, this.z) ? 0.68 : -99;
-    const targetY = Math.max(groundH, pierH);
+    // Ground height (0 indoors, or terrain/wooden pier height outdoors)
+    let targetY = 0;
+    if (!roomBounds) {
+      const groundH = getTerrainHeight(this.x, this.z);
+      const pierH = this._isOnAnyPier(this.x, this.z) ? 0.68 : -99;
+      targetY = Math.max(groundH, pierH);
+    }
     this.y += (targetY - this.y) * Math.min(1, dt * 18);
 
     this.group.position.set(this.x, this.y, this.z);
     this.group.rotation.y = this.yaw;
 
+    // Sneak crouch lean
+    const crouchY = isSneaking ? -0.14 : 0;
+    const crouchTilt = isSneaking ? 0.22 : 0;
+    this.bodyGroup.rotation.x += (crouchTilt - this.bodyGroup.rotation.x) * Math.min(1, dt * 12);
+
     // Limb & bob animation
     if (moving) {
       const s = Math.sin(this.walkPhase);
-      this.legL.rotation.x = s * 0.65;
-      this.legR.rotation.x = -s * 0.65;
-      this.armL.rotation.x = -s * 0.55;
-      this.bodyGroup.position.y = Math.abs(Math.cos(this.walkPhase)) * 0.11;
+      const amp = isSneaking ? 0.35 : 0.65;
+      this.legL.rotation.x = s * amp;
+      this.legR.rotation.x = -s * amp;
+      this.armL.rotation.x = -s * (amp * 0.85);
+      this.bodyGroup.position.y = crouchY + Math.abs(Math.cos(this.walkPhase)) * (isSneaking ? 0.04 : 0.11);
     } else {
       this.legL.rotation.x *= 0.8;
       this.legR.rotation.x *= 0.8;
       this.armL.rotation.x *= 0.8;
-      this.bodyGroup.position.y *= 0.8;
+      this.bodyGroup.position.y += (crouchY - this.bodyGroup.position.y) * Math.min(1, dt * 12);
     }
 
     // Right arm (swinging net or holding tool)
@@ -328,16 +343,14 @@ export class PlayerEntity {
       this.swingAnim = Math.max(0, this.swingAnim - dt);
       const t = 1 - this.swingAnim / 0.32;
       this.armR.rotation.x = -1.6 + Math.sin(t * Math.PI) * 2.25;
-    } else if (this.tool !== 'hand') {
-      this.armR.rotation.x = -0.35 + (moving ? Math.sin(this.walkPhase) * 0.12 : 0);
+    } else if (this.tool !== 'hand' && !roomBounds) {
+      this.armR.rotation.x = (isSneaking ? -0.7 : -0.35) + (moving ? Math.sin(this.walkPhase) * 0.12 : 0);
     } else {
       this.armR.rotation.x = moving ? Math.sin(this.walkPhase) * 0.55 : 0;
     }
   }
 
   _isOnAnyPier(x, z) {
-    // South pier on main island runs along x in [-1.8, 1.8], z in [32, 43]
-    if (Math.abs(x) <= 2.0 && z >= 31 && z <= 43.5) return true;
-    return false;
+    return isPointOnAnyDock(x, z);
   }
 }

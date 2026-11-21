@@ -1,19 +1,23 @@
 import * as THREE from 'three';
 import {
   ISLANDS,
+  MAIN_LANDMARKS,
   getIslandAt,
   getIslandMooringPoint,
   findNearestLandPoint,
   findNearestWaterPoint,
   getTerrainHeight
 } from './data/islands.js';
+import { NPC_MAP } from './data/npcs.js';
+import { FURNITURE_MAP } from './data/shopItems.js';
 import { audio } from './systems/audio.js';
 import { GameStore } from './systems/storage.js';
 import { TimeWeatherSystem } from './systems/timeWeather.js';
 import { InputSystem } from './systems/input.js';
 import { WaterSystem } from './world/water.js';
-import { buildArchipelago, updateAnimatedProps } from './world/islandBuilder.js';
+import { buildArchipelago, updateAnimatedProps, updateHouseExterior } from './world/islandBuilder.js';
 import { AmbientAnimalsSystem } from './world/ambientAnimals.js';
+import { InteriorManager } from './world/interiorManager.js';
 import { PlayerEntity } from './entities/player.js';
 import { BoatEntity } from './entities/boat.js';
 import { NpcManager } from './entities/npcEntity.js';
@@ -28,6 +32,7 @@ class BreezeArchipelagoGame {
     this.currentIslandId = 'main';
     this.cameraTarget = new THREE.Vector3(0, 2, 11);
     this.cameraDist = 17;
+    this.returnExteriorPos = { x: -14, z: 16, yaw: 0 };
 
     this._initRenderer();
     this._initSystems();
@@ -50,7 +55,7 @@ class BreezeArchipelagoGame {
     this.container.appendChild(this.renderer.domElement);
 
     this.scene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(48, window.innerWidth / window.innerHeight, 0.5, 420);
+    this.camera = new THREE.PerspectiveCamera(48, window.innerWidth / window.innerHeight, 0.5, 560);
     this.camera.position.set(0, 14, 28);
 
     window.addEventListener('resize', () => {
@@ -65,23 +70,29 @@ class BreezeArchipelagoGame {
     audio.setMuted(this.store.state.settings.muted);
 
     this.timeWeather = new TimeWeatherSystem(this.scene);
-    this.water = new WaterSystem(this.scene);
 
-    const worldData = buildArchipelago(this.scene, this.timeWeather);
+    // Exterior world container so interiors can cleanly swap visibility
+    this.exteriorRoot = new THREE.Group();
+    this.scene.add(this.exteriorRoot);
+
+    this.water = new WaterSystem(this.exteriorRoot);
+
+    const worldData = buildArchipelago(this.exteriorRoot, this.timeWeather, this.store.state.house.level);
     this.obstacles = worldData.obstacles;
     this.interactables = worldData.interactables;
     this.animatedProps = worldData.animatedProps;
+    this.houseExteriorGroup = worldData.houseExteriorGroup;
 
-    this.ambientAnimals = new AmbientAnimalsSystem(this.scene);
+    this.ambientAnimals = new AmbientAnimalsSystem(this.exteriorRoot);
 
     const labelsEl = document.getElementById('world-labels');
+    this.interiors = new InteriorManager(this.scene, labelsEl);
     this.player = new PlayerEntity(this.scene);
-    this.boat = new BoatEntity(this.scene, this.timeWeather);
-    this.npcs = new NpcManager(this.scene, labelsEl);
-    this.fishSystem = new FishSystem(this.scene, labelsEl);
-    this.bugSystem = new BugSystem(this.scene);
+    this.boat = new BoatEntity(this.exteriorRoot, this.timeWeather);
+    this.npcs = new NpcManager(this.exteriorRoot, labelsEl);
+    this.fishSystem = new FishSystem(this.exteriorRoot, labelsEl);
+    this.bugSystem = new BugSystem(this.exteriorRoot, labelsEl);
 
-    // Apply saved cosmetics & upgrades
     this._syncPlayerVisuals();
 
     this.hud = new HudManager();
@@ -92,6 +103,10 @@ class BreezeArchipelagoGame {
       timeWeather: this.timeWeather,
       onCosmeticChange: () => this._syncPlayerVisuals(),
       onUpgradeChange: () => this._syncPlayerVisuals(),
+      onHouseChange: () => this._syncHouseVisuals(),
+      onEnterHouse: () => this._enterHouse(),
+      onStartPlaceFurniture: id => this._startPlaceFurniture(id),
+      onMuseumChange: () => this._syncMuseumVisuals(),
       onSummonBoat: () => this._summonBoatNearby(),
       onFastTravelHome: () => this._fastTravelHome()
     });
@@ -111,6 +126,10 @@ class BreezeArchipelagoGame {
     this.input.on('onSecondaryPress', () => this._handleSecondaryAction());
     this.input.on('onToolKey', tool => this._selectTool(tool));
     this.input.on('onShortcut', key => this._handleShortcut(key));
+
+    this.toolBarEl = document.getElementById('tool-bar');
+    this.decorateBarEl = document.getElementById('decorate-bar');
+    this.decorateLabelEl = document.getElementById('decorate-bar-label');
   }
 
   _syncPlayerVisuals() {
@@ -120,8 +139,22 @@ class BreezeArchipelagoGame {
     this.boat.setLevel(s.upgrades.boatLevel);
   }
 
+  _syncHouseVisuals() {
+    if (this.houseExteriorGroup) {
+      updateHouseExterior(this.houseExteriorGroup, this.store.state.house.level, this.timeWeather);
+    }
+    if (this.interiors.mode === 'house') {
+      this.interiors.rebuildHouse(this.store);
+    }
+  }
+
+  _syncMuseumVisuals() {
+    if (this.interiors.mode === 'museum') {
+      this.interiors.rebuildMuseum(this.store);
+    }
+  }
+
   _bindUI() {
-    // Start button
     const startBtn = document.getElementById('btn-start-game');
     startBtn.addEventListener('click', () => {
       audio.unlock();
@@ -130,13 +163,11 @@ class BreezeArchipelagoGame {
       document.getElementById('title-screen').classList.add('hidden');
       this.hud.show();
       this.hud.showIslandBanner('微風港灣', '歡迎來到微風群島');
-      this.hud.toast('💡 提示：找阿狸店長接任務，或到南邊碼頭開小船探索外島！', 3800);
+      this.hud.toast('💡 提示：西邊空地可蓋自己的小屋，北邊有博物館，南邊碼頭可開船探索 6 座外島！', 4200);
     });
 
-    // Unlock Web Audio on any interaction
     window.addEventListener('pointerdown', () => audio.unlock(), { once: true });
 
-    // Tool buttons
     document.querySelectorAll('.tool-slot').forEach(btn => {
       btn.addEventListener('click', () => {
         audio.playClick();
@@ -144,7 +175,6 @@ class BreezeArchipelagoGame {
       });
     });
 
-    // HUD top menu buttons
     document.getElementById('btn-open-bag').addEventListener('click', () => this.modals.openBag());
     document.getElementById('btn-open-dex').addEventListener('click', () => this.modals.openDex());
     document.getElementById('btn-open-quests').addEventListener('click', () => this.modals.openQuests());
@@ -152,15 +182,27 @@ class BreezeArchipelagoGame {
     document.getElementById('btn-open-settings').addEventListener('click', () => this.modals.openSettings());
     document.getElementById('btn-time-weather').addEventListener('click', () => this.modals.openTimeWeather());
     document.getElementById('btn-open-map').addEventListener('click', () => {
-      const p = this._getActivePos();
-      this.modals.openMap(p.x, p.z, p.yaw, this.boat.x, this.boat.z);
+      const p = this.interiors.mode === 'exterior' ? this._getActivePos() : { ...this.returnExteriorPos };
+      this.modals.openMap(p.x, p.z, p.yaw || 0, this.boat.x, this.boat.z);
+    });
+
+    // House Decorate floating controls
+    document.getElementById('btn-decor-rotate').addEventListener('click', () => {
+      audio.playClick();
+      this.interiors.rotatePreview();
+    });
+    document.getElementById('btn-decor-confirm').addEventListener('click', () => this._confirmFurniturePlacement());
+    document.getElementById('btn-decor-cancel').addEventListener('click', () => {
+      audio.playClick();
+      this._cancelFurniturePlacement();
     });
   }
 
   _selectTool(tool) {
-    if (this.fishSystem.isActive()) {
-      this.fishSystem.cancel();
-    }
+    if (this.interiors.mode !== 'exterior') return;
+    if (this.fishSystem.isActive()) this.fishSystem.cancel();
+    if (this.bugSystem.isTimingActive()) this.bugSystem.cancelTiming();
+    if (tool !== 'net') this.input.setSneak(false);
     const u = this.store.state.upgrades;
     this.player.setTool(tool, u.rodLevel, u.netLevel);
     this.hud.setActiveTool(tool);
@@ -168,9 +210,18 @@ class BreezeArchipelagoGame {
 
   _handleShortcut(key) {
     if (!this.started) return;
+    if (key === 'rotate') {
+      if (this.interiors.mode === 'house' && this.interiors.placingFurnitureId) {
+        audio.playClick();
+        this.interiors.rotatePreview();
+      }
+      return;
+    }
     if (key === 'close') {
       if (this.modals.isOpen()) this.modals.closeAll();
+      else if (this.interiors.placingFurnitureId) this._cancelFurniturePlacement();
       else if (this.fishSystem.isActive()) this.fishSystem.cancel();
+      else if (this.bugSystem.isTimingActive()) this.bugSystem.cancelTiming();
       return;
     }
     if (this.modals.isOpen()) {
@@ -181,11 +232,110 @@ class BreezeArchipelagoGame {
     else if (key === 'dex') this.modals.openDex();
     else if (key === 'quests') this.modals.openQuests();
     else if (key === 'map') {
-      const p = this._getActivePos();
-      this.modals.openMap(p.x, p.z, p.yaw, this.boat.x, this.boat.z);
+      const p = this.interiors.mode === 'exterior' ? this._getActivePos() : { ...this.returnExteriorPos };
+      this.modals.openMap(p.x, p.z, p.yaw || 0, this.boat.x, this.boat.z);
     }
   }
 
+  // ==================== Indoor Transitions & Furniture Placement ====================
+  _enterHouse() {
+    if (this.fishSystem.isActive()) this.fishSystem.cancel();
+    if (this.bugSystem.isTimingActive()) this.bugSystem.cancelTiming();
+    this.input.setSneak(false);
+
+    this.returnExteriorPos = {
+      x: MAIN_LANDMARKS.house.x + Math.sin(MAIN_LANDMARKS.house.facing) * 4.5,
+      z: MAIN_LANDMARKS.house.z + Math.cos(MAIN_LANDMARKS.house.facing) * 4.5,
+      yaw: MAIN_LANDMARKS.house.facing
+    };
+
+    this.exteriorRoot.visible = false;
+    this.bugSystem.hideAllLabels();
+    const spawn = this.interiors.enterHouse(this.store);
+    this.player.x = spawn.x;
+    this.player.y = spawn.y;
+    this.player.z = spawn.z;
+    this.player.yaw = spawn.yaw;
+    this.player.group.position.set(spawn.x, spawn.y, spawn.z);
+
+    this.toolBarEl.classList.add('hidden');
+    this.decorateBarEl.classList.add('hidden');
+    this.hud.setIslandName('🏡 我的小屋');
+    this.hud.showIslandBanner('我的小屋', '按「🛋️ 裝潢家具」自由佈置房間');
+    audio.playClick();
+  }
+
+  _enterMuseum() {
+    if (this.fishSystem.isActive()) this.fishSystem.cancel();
+    if (this.bugSystem.isTimingActive()) this.bugSystem.cancelTiming();
+    this.input.setSneak(false);
+
+    this.returnExteriorPos = {
+      x: MAIN_LANDMARKS.museum.x + Math.sin(MAIN_LANDMARKS.museum.facing) * 5.6,
+      z: MAIN_LANDMARKS.museum.z + Math.cos(MAIN_LANDMARKS.museum.facing) * 5.6,
+      yaw: MAIN_LANDMARKS.museum.facing
+    };
+
+    this.exteriorRoot.visible = false;
+    this.bugSystem.hideAllLabels();
+    const spawn = this.interiors.enterMuseum(this.store);
+    this.player.x = spawn.x;
+    this.player.y = spawn.y;
+    this.player.z = spawn.z;
+    this.player.yaw = spawn.yaw;
+    this.player.group.position.set(spawn.x, spawn.y, spawn.z);
+
+    this.toolBarEl.classList.add('hidden');
+    this.decorateBarEl.classList.add('hidden');
+    this.hud.setIslandName('🏛️ 微風博物館');
+    this.hud.showIslandBanner('微風自然博物館', '左翼水族・右翼昆蟲甲蟲・北翼爬蟲溫室');
+    audio.playClick();
+  }
+
+  _exitInterior() {
+    this.interiors.exitToExterior();
+    this.exteriorRoot.visible = true;
+    this.decorateBarEl.classList.add('hidden');
+    this.toolBarEl.classList.remove('hidden');
+
+    const ret = this.returnExteriorPos;
+    this.player.x = ret.x;
+    this.player.z = ret.z;
+    this.player.y = getTerrainHeight(ret.x, ret.z);
+    this.player.yaw = ret.yaw || 0;
+    this.player.group.position.set(this.player.x, this.player.y, this.player.z);
+
+    this.hud.setIslandName('微風港灣');
+    audio.playClick();
+  }
+
+  _startPlaceFurniture(furnitureId) {
+    if (this.interiors.mode !== 'house') return;
+    const f = FURNITURE_MAP[furnitureId];
+    if (!f) return;
+    this.interiors.startPlacement(furnitureId);
+    this.decorateLabelEl.textContent = `${f.icon} 擺放「${f.name}」`;
+    this.decorateBarEl.classList.remove('hidden');
+    this.hud.toast(`🪑 移動位置決定擺放點，按「✅ 放置」或空白鍵即可放下！`, 2600);
+  }
+
+  _confirmFurniturePlacement() {
+    const res = this.interiors.confirmPlacement(this.store);
+    if (!res) return;
+    const f = FURNITURE_MAP[res.entry.id];
+    audio.playCoin();
+    this.hud.toast(`✨ 已放置「${f?.name || '家具'}」！`);
+    if (res.remaining <= 0) {
+      this.decorateBarEl.classList.add('hidden');
+    }
+  }
+
+  _cancelFurniturePlacement() {
+    this.interiors.cancelPlacement();
+    this.decorateBarEl.classList.add('hidden');
+  }
+
+  // ==================== Context & Action Handling ====================
   _getActivePos() {
     if (this.player.inBoat) {
       return { x: this.boat.x, y: 0.6, z: this.boat.z, yaw: this.boat.yaw };
@@ -197,7 +347,72 @@ class BreezeArchipelagoGame {
     const pos = this._getActivePos();
     const u = this.store.state.upgrades;
 
-    // 1. Active Fishing states take priority
+    // 0. Indoor contexts (House / Museum)
+    if (this.interiors.mode === 'house') {
+      if (this.interiors.placingFurnitureId) {
+        return {
+          primary: { type: 'place_confirm', icon: '✅', label: '放置這裡', mode: 'net' },
+          secondary: { type: 'place_rotate', icon: '🔄', label: '旋轉' }
+        };
+      }
+      if (this.interiors.isNearExit(pos.x, pos.z)) {
+        return {
+          primary: { type: 'exit_interior', icon: '🚪', label: '離開小屋' },
+          secondary: { type: 'open_decorate', icon: '🛋️', label: '裝潢家具' }
+        };
+      }
+      const nearFurn = this.interiors.getNearestPlacedFurniture(pos.x, pos.z, 2.3);
+      if (nearFurn) {
+        return {
+          primary: { type: 'pickup_furn', icon: '📦', label: '收回家具', uid: nearFurn.uid, id: nearFurn.id },
+          secondary: { type: 'open_decorate', icon: '🛋️', label: '裝潢家具' }
+        };
+      }
+      return {
+        primary: { type: 'open_decorate', icon: '🛋️', label: '裝潢家具', mode: 'net' },
+        secondary: { type: 'exit_interior', icon: '🚪', label: '離開小屋' }
+      };
+    }
+
+    if (this.interiors.mode === 'museum') {
+      const donatable = this.store.getDonatableBagItems().length;
+      if (this.interiors.isNearExit(pos.x, pos.z)) {
+        return {
+          primary: { type: 'exit_interior', icon: '🚪', label: '離開博物館' },
+          secondary: { type: 'open_museum_modal', icon: '🎁', label: '捐贈館藏' }
+        };
+      }
+      if (this.interiors.isNearCurator(pos.x, pos.z)) {
+        return {
+          primary: {
+            type: 'curator_npc',
+            icon: '🦉',
+            label: donatable > 0 ? `捐贈 (${donatable})` : '與館長對話',
+            mode: donatable > 0 ? 'alert' : ''
+          },
+          secondary: { type: 'exit_interior', icon: '🚪', label: '離開' }
+        };
+      }
+      return {
+        primary: {
+          type: 'open_museum_modal',
+          icon: '🎁',
+          label: donatable > 0 ? `捐贈 (${donatable})` : '查看館藏',
+          mode: donatable > 0 ? 'alert' : 'fish'
+        },
+        secondary: { type: 'exit_interior', icon: '🚪', label: '離開' }
+      };
+    }
+
+    // 1. Active Bug Timing Mini-Game takes top priority
+    if (this.bugSystem.isTimingActive()) {
+      return {
+        primary: { type: 'bug_strike', icon: '⚡', label: '精準捕獲！', mode: 'alert' },
+        secondary: null
+      };
+    }
+
+    // 2. Active Fishing states
     if (this.fishSystem.state === 'reeling') {
       return {
         primary: { type: 'fish_reel', icon: '🎣', label: '按住收線', mode: 'fish' },
@@ -217,7 +432,7 @@ class BreezeArchipelagoGame {
       };
     }
 
-    // 2. Sailing in Boat
+    // 3. Sailing in Boat
     if (this.player.inBoat) {
       const landSpot = findNearestLandPoint(this.boat.x, this.boat.z, 15);
       const secondary = landSpot
@@ -245,11 +460,10 @@ class BreezeArchipelagoGame {
       };
     }
 
-    // 3. On Land
+    // 4. On Land
     const distBoat = Math.hypot(this.boat.x - pos.x, this.boat.z - pos.z);
-    const secondary = distBoat < 11.5 ? { type: 'board', icon: '⛵', label: '登船出海' } : null;
+    const boardSecondary = distBoat < 11.5 ? { type: 'board', icon: '⛵', label: '登船出海' } : null;
 
-    // Check nearby NPC or Shop/Bench
     const nearNpc = this.npcs.getNearestNpc(pos.x, pos.z, 4.0);
     let nearInteract = null;
     for (const inter of this.interactables) {
@@ -264,46 +478,58 @@ class BreezeArchipelagoGame {
       if (castSpot) {
         return {
           primary: { type: 'fish_cast', icon: '🎣', label: '拋竿釣魚', mode: 'fish', spot: castSpot },
-          secondary
+          secondary: boardSecondary
         };
       }
       if (nearNpc) {
-        return { primary: { type: 'npc', icon: '💬', label: '對話', npc: nearNpc.data }, secondary };
+        return { primary: { type: 'npc', icon: '💬', label: '對話', npc: nearNpc.data }, secondary: boardSecondary };
       }
       return {
         primary: { type: 'fish_hint', icon: '🎣', label: '靠近水邊', mode: 'fish' },
-        secondary
+        secondary: boardSecondary
       };
     }
 
     if (this.player.tool === 'net') {
-      const nearBug = this.bugSystem.getNearestBug(pos.x, pos.z, 4.2 + u.netLevel * 0.5);
+      const aimed = this.bugSystem.getAimedTarget(pos.x, pos.z, pos.yaw, u.netLevel);
+      const sneaking = this.input.isSneaking();
+      const sneakSecondary = {
+        type: 'toggle_sneak',
+        icon: sneaking ? '🤫' : '🦶',
+        label: sneaking ? '潛行中' : '潛行',
+        extraClass: sneaking ? 'active-sneak' : ''
+      };
       return {
         primary: {
           type: 'net_swing',
           icon: '🥅',
-          label: nearBug ? '捕捉！' : '揮動捕網',
-          mode: nearBug ? 'alert' : 'net'
+          label: aimed ? '鎖定揮網！' : '揮動捕網',
+          mode: aimed ? 'alert' : 'net'
         },
-        secondary
+        secondary: sneakSecondary
       };
     }
 
     // Hand tool context
     if (nearNpc) {
-      return { primary: { type: 'npc', icon: '💬', label: '對話', npc: nearNpc.data }, secondary };
+      return { primary: { type: 'npc', icon: '💬', label: '對話', npc: nearNpc.data }, secondary: boardSecondary };
     }
     if (nearInteract) {
+      let label = '互動';
+      if (nearInteract.type === 'shop') label = '逛商店';
+      else if (nearInteract.type === 'bench') label = '休息調時';
+      else if (nearInteract.type === 'house') label = this.store.state.house.level === 0 ? '蓋小屋' : '進小屋';
+      else if (nearInteract.type === 'museum') label = '進博物館';
       return {
         primary: {
           type: nearInteract.type,
           icon: nearInteract.icon,
-          label: nearInteract.type === 'shop' ? '逛商店' : '休息調時'
+          label
         },
-        secondary
+        secondary: boardSecondary
       };
     }
-    if (secondary) {
+    if (boardSecondary) {
       return { primary: { type: 'board', icon: '⛵', label: '登船出海', mode: 'fish' }, secondary: null };
     }
 
@@ -320,14 +546,55 @@ class BreezeArchipelagoGame {
     const u = this.store.state.upgrades;
     const luck = u.luckyCharm ? 1 : 0;
 
+    // Indoor actions
+    if (act.type === 'place_confirm') {
+      this._confirmFurniturePlacement();
+      return;
+    }
+    if (act.type === 'exit_interior') {
+      this._exitInterior();
+      return;
+    }
+    if (act.type === 'open_decorate') {
+      this.modals.openDecorateModal('inv');
+      return;
+    }
+    if (act.type === 'pickup_furn' && act.uid) {
+      const f = FURNITURE_MAP[act.id];
+      this.store.pickupFurniture(act.uid);
+      audio.playClick();
+      this._syncHouseVisuals();
+      this.hud.toast(`📦 已收回「${f?.name || '家具'}」到倉庫！`);
+      return;
+    }
+    if (act.type === 'curator_npc') {
+      this.modals.openNpcDialogue(NPC_MAP.curator);
+      return;
+    }
+    if (act.type === 'open_museum_modal') {
+      this.modals.openMuseumModal('donate');
+      return;
+    }
+
+    // Bug Timing Strike resolution
+    if (act.type === 'bug_strike') {
+      this.player.triggerNetSwing();
+      audio.playNetSwing();
+      const res = this.bugSystem.resolveTimingStrike(this.player.x, this.player.z, audio);
+      if (res?.success) {
+        this._onCreatureCaught({ creature: res.creature, size: res.size });
+      } else if (res?.message) {
+        this.hud.toast(res.message, 2600);
+      }
+      return;
+    }
+
+    // Fishing actions
     if (act.type === 'fish_hook' || act.type === 'fish_cancel') {
       this.fishSystem.onActionPress(u.rodLevel, audio);
       return;
     }
-    if (act.type === 'fish_reel') {
-      // Holding state is handled continuously in update()
-      return;
-    }
+    if (act.type === 'fish_reel') return;
     if (act.type === 'fish_cast' && act.spot) {
       this.fishSystem.startCast(
         act.spot,
@@ -343,21 +610,33 @@ class BreezeArchipelagoGame {
       this.hud.toast('🌊 請面向海邊、碼頭或池塘水面再拋竿喔！');
       return;
     }
+
+    // Net swing (starts skill timing bar when aimed at a bug/reptile!)
     if (act.type === 'net_swing') {
       this.player.triggerNetSwing();
       audio.playNetSwing();
-      const caught = this.bugSystem.attemptCatch(this.player.x, this.player.z, this.player.yaw, u.netLevel);
-      if (caught) {
-        this._onCreatureCaught(caught);
+      const res = this.bugSystem.startNetSwing(this.player.x, this.player.z, this.player.yaw, u.netLevel, audio);
+      if (!res.started && res.spookedAny) {
+        this.hud.toast('💨 揮空嚇跑了附近的生物！瞄準地上圓圈變綠再揮網！');
       }
       return;
     }
+
+    // Outdoor landmarks & NPCs
     if (act.type === 'npc' && act.npc) {
       this.modals.openNpcDialogue(act.npc);
       return;
     }
     if (act.type === 'shop') {
       this.modals.openShop('sell');
+      return;
+    }
+    if (act.type === 'house') {
+      this.modals.openHouseExteriorModal();
+      return;
+    }
+    if (act.type === 'museum') {
+      this._enterMuseum();
       return;
     }
     if (act.type === 'bench') {
@@ -374,11 +653,11 @@ class BreezeArchipelagoGame {
     }
     if (act.type === 'boat_horn') {
       audio.playBoatHorn();
-      this.hud.toast('⛵ 叭叭～往地圖上的外島航行，或在船上切「🎣 釣竿」海釣吧！');
+      this.hud.toast('⛵ 叭叭～往地圖上的 6 座外島航行，或在船上切「🎣 釣竿」海釣吧！');
       return;
     }
     if (act.type === 'explore_hint') {
-      this.hud.toast('💡 靠近動物朋友可對話，或切換「🎣 釣竿／🥅 捕蟲網」開始收集！');
+      this.hud.toast('💡 靠近動物朋友、小屋或博物館可互動，或切換「🎣 釣竿／🥅 捕蟲網」開始收集！');
     }
   }
 
@@ -388,21 +667,30 @@ class BreezeArchipelagoGame {
     const act = ctx.secondary;
     if (!act) return;
 
-    if (act.type === 'board') {
-      this._boardBoat();
-    } else if (act.type === 'disembark' && act.spot) {
-      this._disembarkBoat(act.spot);
-    }
+    if (act.type === 'board') this._boardBoat();
+    else if (act.type === 'disembark' && act.spot) this._disembarkBoat(act.spot);
+    else if (act.type === 'toggle_sneak') {
+      const on = this.input.toggleSneak();
+      audio.playClick();
+      this.hud.toast(on ? '🤫 已開啟潛行模式，悄悄靠近稀有甲蟲與爬蟲吧！' : '🏃 已關閉潛行模式');
+    } else if (act.type === 'open_decorate') this.modals.openDecorateModal('inv');
+    else if (act.type === 'exit_interior') this._exitInterior();
+    else if (act.type === 'place_rotate') {
+      audio.playClick();
+      this.interiors.rotatePreview();
+    } else if (act.type === 'open_museum_modal') this.modals.openMuseumModal('donate');
   }
 
   _boardBoat() {
     if (this.fishSystem.isActive()) this.fishSystem.cancel();
+    if (this.bugSystem.isTimingActive()) this.bugSystem.cancelTiming();
+    this.input.setSneak(false);
     this.player.inBoat = true;
     this.boat.seatAnchor.add(this.player.group);
     this.player.group.position.set(0, 0, 0);
     this.player.group.rotation.set(0, 0, 0);
     audio.playBoatHorn();
-    this.hud.toast('⛵ 已登船出海！跟著右上角小地圖探索各座外島吧！');
+    this.hud.toast('⛵ 已登船出海！跟著右上角小地圖探索 6 座外島吧！');
   }
 
   _disembarkBoat(spot) {
@@ -418,6 +706,10 @@ class BreezeArchipelagoGame {
   }
 
   _summonBoatNearby() {
+    if (this.interiors.mode !== 'exterior') {
+      this.hud.toast('⛵ 請先離開室內回到島上再召喚小船喔！');
+      return;
+    }
     if (this.player.inBoat) {
       this.hud.toast('⛵ 你現在就在船上囉！');
       return;
@@ -429,7 +721,11 @@ class BreezeArchipelagoGame {
   }
 
   _fastTravelHome() {
+    if (this.interiors.mode !== 'exterior') {
+      this._exitInterior();
+    }
     if (this.fishSystem.isActive()) this.fishSystem.cancel();
+    if (this.bugSystem.isTimingActive()) this.bugSystem.cancelTiming();
     if (this.player.inBoat) {
       this.player.inBoat = false;
       this.scene.add(this.player.group);
@@ -449,9 +745,16 @@ class BreezeArchipelagoGame {
     const res = this.store.recordCatch(creature, size);
     audio.playCatch(creature.rarity >= 4 || res.isNew);
     this.modals.showCatchModal(creature, size, res);
+
+    if (res.newlyUnlocked && res.newlyUnlocked.length > 0) {
+      for (const u of res.newlyUnlocked) {
+        this.hud.toast(`🔓 捕獲達標！現在有機會在野外出沒「${u.icon} ${u.name}」了！`, 4600);
+      }
+    }
   }
 
   _updateIslandTracking(pos) {
+    if (this.interiors.mode !== 'exterior') return;
     const isl = getIslandAt(pos.x, pos.z, 12);
     const nextId = isl ? isl.id : 'ocean';
     if (nextId !== this.currentIslandId) {
@@ -475,39 +778,63 @@ class BreezeArchipelagoGame {
 
     const modalLocked = !this.started || this.modals.isOpen();
     const moveVec = modalLocked ? { x: 0, z: 0, mag: 0 } : this.input.getMoveVector();
+    const isIndoors = this.interiors.mode !== 'exterior';
 
-    // Freeze movement while fishing line is cast
-    const moveLocked = modalLocked || this.fishSystem.isActive();
+    const moveLocked = modalLocked || this.fishSystem.isActive() || this.bugSystem.isTimingActive();
+    const isSneaking = !isIndoors && !this.player.inBoat && this.input.isSneaking();
 
-    // Update Player & Boat
-    this.player.update(dt, moveVec, this.obstacles, audio, moveLocked);
-    this.boat.update(dt, this.elapsed, this.player.inBoat, moveVec, this.water, moveLocked);
+    // Update Player (with indoor room bounds & furniture obstacles when inside!)
+    const activeObstacles = isIndoors ? this.interiors.getObstacles() : this.obstacles;
+    const roomBounds = isIndoors ? this.interiors.getRoomBounds() : null;
+    this.player.update(dt, moveVec, activeObstacles, audio, moveLocked, isSneaking, roomBounds);
+
+    if (!isIndoors) {
+      this.boat.update(dt, this.elapsed, this.player.inBoat, moveVec, this.water, moveLocked);
+    }
 
     const activePos = this._getActivePos();
     const u = this.store.state.upgrades;
     const luck = u.luckyCharm ? 1 : 0;
 
-    // Update World, Time/Weather, Water, Wildlife
-    this.timeWeather.update(dt, activePos);
-    this.water.update(dt, this.elapsed, this.timeWeather.isNight());
-    updateAnimatedProps(this.animatedProps, dt, this.elapsed);
-    this.ambientAnimals.update(dt, this.elapsed);
+    // Update Environment & Lighting
+    this.timeWeather.update(dt, isIndoors ? { x: 0, y: 0, z: 0 } : activePos);
+
+    if (isIndoors) {
+      // Warm cozy indoor atmosphere (no rain/stars/ocean fog indoors)
+      this.scene.background = new THREE.Color(this.interiors.mode === 'house' ? 0x3b2f26 : 0x243844);
+      this.scene.fog.density = 0.0001;
+      this.timeWeather.rain.visible = false;
+      this.timeWeather.stars.visible = false;
+      this.timeWeather.hemiLight.intensity = 1.05;
+      this.timeWeather.sunLight.intensity = 0.85;
+      this.timeWeather.sunLight.position.set(8, 22, 14);
+      this.timeWeather.sunLight.target.position.set(0, 0, 0);
+    } else {
+      this.water.update(dt, this.elapsed, this.timeWeather.isNight());
+      updateAnimatedProps(this.animatedProps, dt, this.elapsed);
+      this.ambientAnimals.update(dt, this.elapsed);
+    }
 
     // Update Camera
     if (!this.started) {
-      // Gentle scenic orbit around Main Island during Title Screen
       const orbitA = this.elapsed * 0.16;
-      this.camera.position.set(Math.sin(orbitA) * 34, 17, Math.cos(orbitA) * 34);
-      this.camera.lookAt(2, 2.5, -2);
+      this.camera.position.set(Math.sin(orbitA) * 35, 17, Math.cos(orbitA) * 35);
+      this.camera.lookAt(0, 2.5, -2);
     } else {
-      const targetDist = this.player.inBoat ? 24.5 : 16.5;
+      const targetDist = isIndoors
+        ? this.interiors.mode === 'museum'
+          ? 18.5
+          : 13.8
+        : this.player.inBoat
+          ? 24.5
+          : 16.5;
       this.cameraDist += (targetDist - this.cameraDist) * Math.min(1, dt * 4);
 
       const desiredFocus = new THREE.Vector3(activePos.x, activePos.y + 1.4, activePos.z);
       this.cameraTarget.lerp(desiredFocus, Math.min(1, dt * 8));
 
-      const yaw = this.input.cameraYaw;
-      const pitch = this.input.cameraPitch;
+      const yaw = isIndoors ? Math.max(-0.85, Math.min(0.85, this.input.cameraYaw * 0.5)) : this.input.cameraYaw;
+      const pitch = isIndoors ? 0.68 : this.input.cameraPitch;
       const horiz = Math.cos(pitch) * this.cameraDist;
       const vert = Math.sin(pitch) * this.cameraDist;
 
@@ -519,40 +846,54 @@ class BreezeArchipelagoGame {
       this.camera.lookAt(this.cameraTarget);
     }
 
-    // Update Entities (NPCs, Bugs, Fishing)
-    const rodTip = this.player.getRodTipWorldPosition();
-    this.npcs.update(dt, this.elapsed, this.camera, activePos, this.store, modalLocked);
-    this.bugSystem.update(
-      dt,
-      this.elapsed,
-      activePos,
-      moveVec.mag,
-      this.timeWeather.isNight(),
-      this.timeWeather.isRain(),
-      u.netLevel,
-      luck
-    );
-    this.fishSystem.update(
-      dt,
-      this.elapsed,
-      this.camera,
-      activePos,
-      rodTip,
-      this.input.isPrimaryHeld,
-      u.rodLevel,
-      this.timeWeather.isNight(),
-      this.timeWeather.isRain(),
-      luck,
-      audio,
-      caught => this._onCreatureCaught(caught),
-      msg => this.hud.toast(msg)
-    );
+    // Update Entities
+    if (isIndoors) {
+      this.npcs.update(dt, this.elapsed, this.camera, activePos, this.store, true);
+      this.interiors.update(dt, this.elapsed, this.camera, activePos, this.store, modalLocked);
+    } else {
+      const rodTip = this.player.getRodTipWorldPosition();
+      this.npcs.update(dt, this.elapsed, this.camera, activePos, this.store, modalLocked);
+      this.bugSystem.update(
+        dt,
+        this.elapsed,
+        this.camera,
+        activePos,
+        moveVec.mag,
+        isSneaking,
+        this.player.tool === 'net',
+        this.player.inBoat,
+        this.timeWeather.isNight(),
+        this.timeWeather.isRain(),
+        u.netLevel,
+        luck,
+        this.store.getCatchCounts(),
+        audio,
+        msg => this.hud.toast(msg, 2800),
+        modalLocked
+      );
+      this.fishSystem.update(
+        dt,
+        this.elapsed,
+        this.camera,
+        activePos,
+        rodTip,
+        this.input.isPrimaryHeld,
+        u.rodLevel,
+        this.timeWeather.isNight(),
+        this.timeWeather.isRain(),
+        luck,
+        audio,
+        caught => this._onCreatureCaught(caught),
+        msg => this.hud.toast(msg)
+      );
+    }
 
     // Update HUD
     if (this.started) {
       this._updateIslandTracking(activePos);
       this.hud.updateTimeWeather(this.timeWeather);
-      this.hud.updateMinimap(activePos.x, activePos.z, activePos.yaw, this.boat.x, this.boat.z);
+      const mapPos = isIndoors ? this.returnExteriorPos : activePos;
+      this.hud.updateMinimap(mapPos.x, mapPos.z, mapPos.yaw || 0, this.boat.x, this.boat.z);
       const ctx = this._getContext();
       this.hud.updateActionButtons(ctx.primary, ctx.secondary);
     }
