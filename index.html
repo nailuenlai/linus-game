@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>微風群島物語 — 3D 療癒海島冒險遊戲</title>
+  <meta name="description" content="在微風群島展開療癒 3D 低多邊形海島冒險：駕駛小船探索櫻花竹林島、熱帶椰林島與神秘遺跡島，釣魚、抓蟲、逛商店、與可愛動物交朋友！" />
+  <meta name="theme-color" content="#38a3b8" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css" />
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.min.js"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="game-root">
+    <!-- 3D Canvas Container -->
+    <div id="canvas-container" aria-label="微風群島 3D 遊戲畫面"></div>
+
+    <!-- Floating World Labels (NPC names, prompts, fish bite '!') -->
+    <div id="world-labels"></div>
+
+    <!-- Splash / Title Overlay -->
+    <section id="title-screen" class="title-screen">
+      <div class="title-card">
+        <div class="title-emblem" aria-hidden="true">🏝️⛵</div>
+        <h1 class="game-title">微風群島物語</h1>
+        <p class="game-subtitle">駕船探險・悠閒釣魚・捕捉昆蟲・結交島上動物夥伴</p>
+        <div class="title-features">
+          <span>🎣 18 種魚類</span>
+          <span>🦋 14 種昆蟲</span>
+          <span>🏝️ 4 座主題島嶼</span>
+          <span>🐾 動物委託任務</span>
+        </div>
+        <button id="btn-start-game" class="btn-primary btn-start">開始冒險</button>
+        <p class="title-hint">手機使用虛擬搖桿與按鈕・電腦支援 WASD / 空白鍵 / 滑鼠拖曳轉視角</p>
+      </div>
+    </section>
+
+    <!-- Main HUD -->
+    <header id="hud" class="hud hidden">
+      <!-- Top Left: Coins, Time/Weather, Current Island & Quest Tracker -->
+      <div class="hud-top-left">
+        <div class="pill coin-pill" id="hud-coins" title="金幣">
+          <span class="pill-icon">🪙</span>
+          <span id="coin-value" class="pill-value">100</span>
+        </div>
+        <button class="pill time-pill" id="btn-time-weather" title="查看與切換時段">
+          <span id="weather-icon">☀️</span>
+          <span id="time-label">上午 09:00</span>
+        </button>
+        <div class="pill island-pill" id="hud-island-pill">
+          <span class="pill-icon">📍</span>
+          <span id="island-name-label">微風港灣</span>
+        </div>
+        <button id="quest-tracker" class="quest-tracker hidden" title="查看任務詳情">
+          <span class="quest-tracker-icon">⭐</span>
+          <span id="quest-tracker-text">向阿狸店長打聲招呼</span>
+        </button>
+      </div>
+
+      <!-- Top Right: Minimap + Quick Menu Buttons -->
+      <div class="hud-top-right">
+        <div class="hud-menu-row">
+          <button class="icon-btn" id="btn-open-bag" aria-label="背包" title="背包 (B)">
+            <span>🎒</span>
+            <span class="badge hidden" id="bag-count-badge">0</span>
+          </button>
+          <button class="icon-btn" id="btn-open-dex" aria-label="圖鑑" title="生物圖鑑 (N)">
+            <span>📖</span>
+          </button>
+          <button class="icon-btn" id="btn-open-quests" aria-label="任務" title="動物任務 (Q)">
+            <span>📜</span>
+            <span class="badge dot hidden" id="quest-dot-badge"></span>
+          </button>
+          <button class="icon-btn" id="btn-open-settings" aria-label="設定" title="設定與音效">
+            <span>⚙️</span>
+          </button>
+        </div>
+        <button class="minimap-btn" id="btn-open-map" aria-label="開啟航海地圖" title="點擊展開航海地圖 (M)">
+          <canvas id="minimap-canvas" width="128" height="128"></canvas>
+          <span class="minimap-compass">N</span>
+        </button>
+      </div>
+
+      <!-- Island Discovery / Toast Notification -->
+      <div id="island-banner" class="island-banner hidden">
+        <div class="island-banner-sub" id="island-banner-sub">抵達島嶼</div>
+        <div class="island-banner-title" id="island-banner-title">微風港灣</div>
+      </div>
+      <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+      <!-- Fishing Mini-Game Overlay -->
+      <div id="fishing-overlay" class="fishing-overlay hidden">
+        <div class="fishing-card">
+          <div class="fishing-header">
+            <span id="fishing-status-text">🐟 魚兒上鉤了！按住收線！</span>
+          </div>
+          <div class="fishing-track">
+            <div id="fishing-sweet-zone" class="fishing-sweet-zone"></div>
+            <div id="fishing-fish-marker" class="fishing-fish-marker">🐟</div>
+          </div>
+          <div class="fishing-progress-wrap">
+            <div class="fishing-progress-label">收線進度</div>
+            <div class="fishing-progress-bar">
+              <div id="fishing-progress-fill" class="fishing-progress-fill"></div>
+            </div>
+          </div>
+          <p class="fishing-tip">按住「收線」按鈕或空白鍵，讓魚停在綠色區域內！</p>
+        </div>
+      </div>
+
+      <!-- Bottom Left: Virtual Joystick -->
+      <div id="joystick-zone" class="joystick-zone" aria-hidden="true">
+        <div id="joystick-base" class="joystick-base">
+          <div id="joystick-knob" class="joystick-knob"></div>
+        </div>
+      </div>
+
+      <!-- Bottom Center: Tool Switcher Bar -->
+      <nav id="tool-bar" class="tool-bar" aria-label="工具欄">
+        <button class="tool-slot active" data-tool="hand" id="tool-hand" title="空手 / 互動 (1)">
+          <span class="tool-emoji">✋</span>
+          <span class="tool-name">互動</span>
+        </button>
+        <button class="tool-slot" data-tool="rod" id="tool-rod" title="釣竿 (2)">
+          <span class="tool-emoji">🎣</span>
+          <span class="tool-name">釣竿</span>
+        </button>
+        <button class="tool-slot" data-tool="net" id="tool-net" title="捕蟲網 (3)">
+          <span class="tool-emoji">🥅</span>
+          <span class="tool-name">捕蟲網</span>
+        </button>
+      </nav>
+
+      <!-- Bottom Right: Context Primary & Secondary Action Buttons -->
+      <div class="action-cluster">
+        <button id="btn-secondary-action" class="action-btn secondary hidden" aria-label="次要動作">
+          <span id="secondary-action-icon" class="action-icon">⛵</span>
+          <span id="secondary-action-label" class="action-label">登船</span>
+        </button>
+        <button id="btn-primary-action" class="action-btn primary" aria-label="主要動作">
+          <span id="primary-action-icon" class="action-icon">💬</span>
+          <span id="primary-action-label" class="action-label">互動</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Modals Backdrop & Container -->
+    <div id="modal-backdrop" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+      <div id="modal-panel" class="modal-panel">
+        <div class="modal-header">
+          <h2 id="modal-title" class="modal-title">標題</h2>
+          <button id="btn-close-modal" class="modal-close" aria-label="關閉">✕</button>
+        </div>
+        <div id="modal-body" class="modal-body"></div>
+      </div>
+    </div>
+
+    <!-- NPC Dialogue Box (Bottom storybook box) -->
+    <div id="dialogue-box" class="dialogue-box hidden" role="dialog" aria-label="角色對話">
+      <div class="dialogue-portrait" id="dialogue-portrait">🦝</div>
+      <div class="dialogue-content">
+        <div class="dialogue-name-row">
+          <span id="dialogue-name" class="dialogue-name">阿狸店長</span>
+          <span id="dialogue-role" class="dialogue-role">雜貨店老闆</span>
+        </div>
+        <p id="dialogue-text" class="dialogue-text"></p>
+        <div id="dialogue-actions" class="dialogue-actions"></div>
+      </div>
+    </div>
+
+    <!-- Catch Celebration Modal -->
+    <div id="catch-modal" class="catch-modal hidden" role="dialog" aria-label="捕獲成功">
+      <div class="catch-card">
+        <div id="catch-new-badge" class="catch-new-badge hidden">✨ 新登錄圖鑑！</div>
+        <div class="catch-spotlight">
+          <div id="catch-icon" class="catch-icon">🐟</div>
+        </div>
+        <div id="catch-rarity" class="catch-rarity">★★★</div>
+        <h3 id="catch-name" class="catch-name">小丑魚</h3>
+        <div id="catch-meta" class="catch-meta">體長 14.2 cm ・ 價值 45 🪙</div>
+        <p id="catch-desc" class="catch-desc">色彩鮮豔的熱帶魚，總是躲在海葵旁。</p>
+        <button id="btn-catch-ok" class="btn-primary">收進背包！</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
