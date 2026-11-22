@@ -85,22 +85,79 @@ export class FishSystem {
     return g;
   }
 
-  _createShadowMesh(size = 1, isRare = false) {
+  _createShadowMesh(creature) {
+    const size = creature?.shadowSize || 1;
+    const isRare = (creature?.rarity || 1) >= 4;
+    const id = creature?.id || '';
     const g = new THREE.Group();
     const mat = new THREE.MeshBasicMaterial({
       color: isRare ? 0x103c52 : 0x0b2a38,
       transparent: true,
       opacity: 0.62
     });
-    const body = new THREE.Mesh(new THREE.SphereGeometry(0.45, 7, 5), mat);
-    body.scale.set(0.62, 0.14, 1.55);
-    g.add(body);
 
-    const tail = new THREE.Mesh(new THREE.ConeGeometry(0.32, 0.55, 4), mat);
-    tail.rotation.x = Math.PI / 2;
-    tail.scale.set(0.9, 1, 0.2);
-    tail.position.z = -0.82;
-    g.add(tail);
+    if (id === 'manta_ray') {
+      const diamond = new THREE.Mesh(new THREE.ConeGeometry(0.62, 0.95, 4), mat);
+      diamond.rotation.x = Math.PI / 2;
+      diamond.scale.set(1.45, 1, 0.14);
+      const whip = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.06, 0.9, 4), mat);
+      whip.rotation.x = Math.PI / 2;
+      whip.position.z = -0.82;
+      g.add(diamond, whip);
+    } else if (id === 'moray_eel' || id === 'oarfish' || id === 'arowana' || id === 'arapaima') {
+      const body = new THREE.Mesh(new THREE.SphereGeometry(0.32, 7, 5), mat);
+      body.scale.set(0.45, 0.14, 2.65);
+      const tail = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.68, 4), mat);
+      tail.rotation.x = Math.PI / 2;
+      tail.scale.set(0.6, 1, 0.18);
+      tail.position.z = -1.05;
+      g.add(body, tail);
+    } else if (id === 'crystal_jelly' || id === 'squid') {
+      const bell = new THREE.Mesh(new THREE.SphereGeometry(0.42, 7, 5), mat);
+      bell.scale.set(0.85, 0.16, 1.05);
+      bell.position.z = 0.25;
+      g.add(bell);
+      for (const sx of [-0.18, 0, 0.18]) {
+        const tent = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.05, 0.72, 4), mat);
+        tent.rotation.x = Math.PI / 2;
+        tent.position.set(sx, 0, -0.42);
+        g.add(tent);
+      }
+    } else if (id === 'pufferfish') {
+      const body = new THREE.Mesh(new THREE.SphereGeometry(0.48, 8, 6), mat);
+      body.scale.set(0.95, 0.16, 1.02);
+      const tail = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.35, 4), mat);
+      tail.rotation.x = Math.PI / 2;
+      tail.scale.set(0.8, 1, 0.2);
+      tail.position.z = -0.62;
+      g.add(body, tail);
+    } else if (id === 'sea_angel') {
+      const body = new THREE.Mesh(new THREE.SphereGeometry(0.32, 7, 5), mat);
+      body.scale.set(0.55, 0.14, 1.3);
+      const wings = new THREE.Mesh(new THREE.SphereGeometry(0.38, 7, 5), mat);
+      wings.scale.set(1.5, 0.1, 0.55);
+      wings.position.z = 0.05;
+      g.add(body, wings);
+    } else {
+      const body = new THREE.Mesh(new THREE.SphereGeometry(0.45, 7, 5), mat);
+      body.scale.set(0.62, 0.14, 1.55);
+      g.add(body);
+
+      const tail = new THREE.Mesh(new THREE.ConeGeometry(0.32, 0.55, 4), mat);
+      tail.rotation.x = Math.PI / 2;
+      tail.scale.set(0.9, 1, 0.2);
+      tail.position.z = -0.82;
+      g.add(tail);
+
+      // Iconic dorsal fin peeking near surface for whale shark, ocean sunfish & blue marlin!
+      if (id === 'whale_shark' || id === 'ocean_sunfish' || id === 'blue_marlin') {
+        const fin = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.42, 4), mat);
+        fin.scale.set(0.28, 1, 1.15);
+        fin.position.set(0, 0.2, 0.02);
+        fin.rotation.x = -0.28;
+        g.add(fin);
+      }
+    }
 
     if (isRare) {
       const sparkle = new THREE.Mesh(
@@ -126,7 +183,7 @@ export class FishSystem {
     );
     if (!candidates.length) return;
     const creature = pickWeightedCreature(candidates, luckBonus);
-    const mesh = this._createShadowMesh(creature.shadowSize, creature.rarity >= 4);
+    const mesh = this._createShadowMesh(creature);
     mesh.position.set(x, WATER_LEVEL - 0.08, z);
     this.scene.add(mesh);
 

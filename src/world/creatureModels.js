@@ -2022,16 +2022,1664 @@ const REPTILE_BUILDERS = {
   }
 };
 
+// ============================================================================
+// AQUATIC MODEL HELPERS & INDIVIDUAL FISH BUILDERS (30 UNIQUE SPECIES)
+// Forward = +Z (snout), Rear = -Z (tail), Up = +Y (dorsal), Sides = ±X
+// ============================================================================
+
+function addFishEyes(parent, x, y, z, r = 0.044, irisMat = null, pupilMat = null) {
+  const iris = irisMat || makeMat(0xfffdf5, { roughness: 0.25 });
+  const pupil = pupilMat || makeMat(0x161414, { roughness: 0.18 });
+  const eyeGeo = new THREE.SphereGeometry(r, 6, 5);
+  const pupGeo = new THREE.SphereGeometry(r * 0.56, 5, 4);
+  for (const sx of [-1, 1]) {
+    const e = new THREE.Mesh(eyeGeo, iris);
+    e.scale.set(0.65, 1, 1);
+    e.position.set(sx * x, y, z);
+    parent.add(e);
+    const p = new THREE.Mesh(pupGeo, pupil);
+    p.scale.set(0.65, 1, 1);
+    p.position.set(sx * (x + r * 0.42), y, z + r * 0.14);
+    parent.add(p);
+  }
+}
+
+function addPectoralFins(parent, mat, { x = 0.15, y = -0.04, z = 0.1, len = 0.22, width = 0.11, sweep = 0.55, tilt = -0.35 } = {}) {
+  const wingL = new THREE.Group();
+  wingL.position.set(-x, y, z);
+  const wingR = new THREE.Group();
+  wingR.position.set(x, y, z);
+  for (const [piv, sx] of [[wingL, -1], [wingR, 1]]) {
+    const fin = new THREE.Mesh(new THREE.BoxGeometry(len, 0.022, width), mat);
+    fin.position.set(sx * (len * 0.46), 0, -width * 0.28);
+    fin.rotation.y = sx * sweep;
+    fin.rotation.z = sx * tilt;
+    piv.add(fin);
+  }
+  parent.add(wingL, wingR);
+  return { wingL, wingR };
+}
+
+function addForkedTail(tailPivot, mat, { len = 0.34, spread = 0.17, thickness = 0.036, bladeW = 0.1, trimMat = null } = {}) {
+  for (const sy of [-1, 1]) {
+    const lobe = new THREE.Mesh(new THREE.ConeGeometry(bladeW * 0.62, len, 4), mat);
+    lobe.scale.set(thickness / (bladeW * 1.24), 1, 1);
+    lobe.position.set(0, sy * spread * 0.54, -len * 0.46);
+    lobe.rotation.x = -Math.PI * 0.5 + sy * 0.46;
+    tailPivot.add(lobe);
+    if (trimMat) {
+      const trim = new THREE.Mesh(new THREE.BoxGeometry(thickness * 1.15, bladeW * 0.26, len * 0.88), trimMat);
+      trim.position.set(0, sy * (spread * 0.58 + bladeW * 0.24), -len * 0.45);
+      trim.rotation.x = sy * 0.46;
+      tailPivot.add(trim);
+    }
+  }
+  const hub = new THREE.Mesh(new THREE.BoxGeometry(thickness * 1.15, spread * 0.78, len * 0.46), mat);
+  hub.position.set(0, 0, -len * 0.14);
+  tailPivot.add(hub);
+}
+
+function addRoundedTail(tailPivot, mat, { len = 0.34, height = 0.34, thickness = 0.035, trimMat = null } = {}) {
+  const fan = new THREE.Mesh(new THREE.CylinderGeometry(height * 0.5, height * 0.5, thickness, 8), mat);
+  fan.rotation.z = Math.PI * 0.5;
+  fan.scale.set(1, 1, len / height);
+  fan.position.set(0, 0, -len * 0.48);
+  tailPivot.add(fan);
+  if (trimMat) {
+    const rim = new THREE.Mesh(
+      new THREE.CylinderGeometry(height * 0.52, height * 0.52, thickness * 0.72, 8, 1, false, Math.PI - 0.9, 1.8),
+      trimMat
+    );
+    rim.rotation.z = Math.PI * 0.5;
+    rim.scale.set(1, 1, len / height);
+    rim.position.set(0, 0, -len * 0.5);
+    tailPivot.add(rim);
+  }
+}
+
+const FISH_BUILDERS = {
+  // 1. 海鱸魚 — Sleek olive-teal sea bass with silver belly, spiky front dorsal, gill slashes & dark speckles
+  sea_bass() {
+    const g = new THREE.Group();
+    const tealMat = makeMat(0x5e9c94, { roughness: 0.45 });
+    const darkMat = makeMat(0x366660, { roughness: 0.5 });
+    const bellyMat = makeMat(0xdbedea, { roughness: 0.42 });
+
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.28, 9, 7), tealMat);
+    body.scale.set(0.56, 0.84, 1.78);
+    g.add(body);
+
+    const belly = new THREE.Mesh(new THREE.SphereGeometry(0.25, 8, 6), bellyMat);
+    belly.scale.set(0.5, 0.56, 1.55);
+    belly.position.set(0, -0.075, 0.03);
+    g.add(belly);
+
+    // Spiky front dorsal + soft rear dorsal
+    for (let i = 0; i < 4; i++) {
+      const sp = new THREE.Mesh(new THREE.ConeGeometry(0.032, 0.17 - i * 0.015, 4), darkMat);
+      sp.position.set(0, 0.25, 0.14 - i * 0.085);
+      sp.rotation.x = -0.35;
+      g.add(sp);
+    }
+    const dorsal2 = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.12, 0.18), tealMat);
+    dorsal2.position.set(0, 0.2, -0.22);
+    dorsal2.rotation.x = -0.22;
+    g.add(dorsal2);
+
+    // Subtle dark dorsal speckles
+    for (const sz of [-0.14, 0.02, 0.16]) {
+      for (const sx of [-0.11, 0.11]) {
+        const dot = new THREE.Mesh(new THREE.SphereGeometry(0.024, 5, 4), darkMat);
+        dot.position.set(sx, 0.12, sz);
+        g.add(dot);
+      }
+    }
+
+    const anal = new THREE.Mesh(new THREE.BoxGeometry(0.026, 0.1, 0.15), bellyMat);
+    anal.position.set(0, -0.2, -0.22);
+    anal.rotation.x = 0.28;
+    g.add(anal);
+
+    const { wingL, wingR } = addPectoralFins(g, bellyMat, { x: 0.15, y: -0.04, z: 0.14, len: 0.2 });
+    const tail = createTailPivot(g, 0, -0.46);
+    addForkedTail(tail, darkMat, { len: 0.34, spread: 0.17 });
+    addFishEyes(g, 0.12, 0.055, 0.34, 0.045);
+
+    g.scale.setScalar(0.92);
+    return { group: g, wingL, wingR, tailMesh: tail };
+  },
+
+  // 2. 竹筴魚 — Streamlined silver-blue schooling mackerel with golden lateral scute ridge & sharp yellow forked tail
+  horse_mackerel() {
+    const g = new THREE.Group();
+    const blueMat = makeMat(0x75b2d4, { roughness: 0.3, metalness: 0.32 });
+    const silverMat = makeMat(0xe8f4fa, { roughness: 0.25, metalness: 0.38 });
+    const goldMat = makeMat(0xf4cf57, { roughness: 0.38, metalness: 0.2 });
+
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.24, 9, 7), blueMat);
+    body.scale.set(0.46, 0.72, 1.95);
+    g.add(body);
+
+    const belly = new THREE.Mesh(new THREE.SphereGeometry(0.21, 8, 6), silverMat);
+    belly.scale.set(0.44, 0.5, 1.78);
+    belly.position.set(0, -0.06, 0.02);
+    g.add(belly);
+
+    // Signature golden lateral scute line along both flanks
+    for (const sx of [-1, 1]) {
+      const scute = new THREE.Mesh(new THREE.BoxGeometry(0.022, 0.036, 0.62), goldMat);
+      scute.position.set(sx * 0.105, 0.0, -0.06);
+      g.add(scute);
+    }
+
+    const d1 = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.18, 4), blueMat);
+    d1.position.set(0, 0.2, 0.08);
+    d1.rotation.x = -0.45;
+    const d2 = new THREE.Mesh(new THREE.BoxGeometry(0.024, 0.08, 0.22), silverMat);
+    d2.position.set(0, 0.16, -0.18);
+    g.add(d1, d2);
+
+    const { wingL, wingR } = addPectoralFins(g, silverMat, { x: 0.11, y: -0.04, z: 0.12, len: 0.2, sweep: 0.75 });
+    const tail = createTailPivot(g, 0, -0.44);
+    addForkedTail(tail, goldMat, { len: 0.34, spread: 0.2, bladeW: 0.075 });
+    addFishEyes(g, 0.095, 0.04, 0.32, 0.044);
+
+    g.scale.setScalar(0.75);
+    return { group: g, wingL, wingR, tailMesh: tail };
+  },
+
+  // 3. 鯽魚 — Plump high-backed golden-bronze pond crucian carp with rounded fins
+  crucian_carp() {
+    const g = new THREE.Group();
+    const bronzeMat = makeMat(0xc4a862, { roughness: 0.42, metalness: 0.16 });
+    const backMat = makeMat(0x8a733b, { roughness: 0.52 });
+    const bellyMat = makeMat(0xf0e1b0, { roughness: 0.48 });
+    const finMat = makeMat(0xd9ae58, { roughness: 0.55 });
+
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.29, 9, 7), bronzeMat);
+    body.scale.set(0.58, 1.05, 1.48);
+    g.add(body);
+
+    const dorsalBack = new THREE.Mesh(new THREE.SphereGeometry(0.24, 8, 6), backMat);
+    dorsalBack.scale.set(0.5, 0.6, 1.32);
+    dorsalBack.position.set(0, 0.13, -0.02);
+    g.add(dorsalBack);
+
+    const belly = new THREE.Mesh(new THREE.SphereGeometry(0.24, 8, 6), bellyMat);
+    belly.scale.set(0.5, 0.55, 1.25);
+    belly.position.set(0, -0.13, 0.02);
+    g.add(belly);
+
+    // Long arched smooth crucian dorsal fin
+    const dorsal = new THREE.Mesh(new THREE.BoxGeometry(0.032, 0.15, 0.38), backMat);
+    dorsal.position.set(0, 0.32, -0.04);
+    dorsal.rotation.x = -0.15;
+    const anal = new THREE.Mesh(new THREE.BoxGeometry(0.028, 0.12, 0.16), finMat);
+    anal.position.set(0, -0.26, -0.16);
+    g.add(dorsal, anal);
+
+    const { wingL, wingR } = addPectoralFins(g, finMat, { x: 0.16, y: -0.08, z: 0.1, len: 0.19, width: 0.12 });
+    const tail = createTailPivot(g, 0, -0.4);
+    addForkedTail(tail, backMat, { len: 0.28, spread: 0.16, bladeW: 0.11 });
+    addFishEyes(g, 0.13, 0.05, 0.28, 0.044);
+
+    g.scale.setScalar(0.78);
+    return { group: g, wingL, wingR, tailMesh: tail };
+  },
+
+  // 4. 香魚 — Slender pale jade sweetfish with signature bright golden oval behind gill & tiny adipose fin
+  sweetfish() {
+    const g = new THREE.Group();
+    const jadeMat = makeMat(0x88cc7c, { roughness: 0.38, metalness: 0.12 });
+    const silverMat = makeMat(0xedf9ec, { roughness: 0.32, metalness: 0.2 });
+    const goldPatch = makeMat(0xffe14d, { roughness: 0.3, emissive: 0x705400, emissiveIntensity: 0.25 });
+
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.22, 9, 7), jadeMat);
+    body.scale.set(0.45, 0.72, 2.05);
+    g.add(body);
+
+    const belly = new THREE.Mesh(new THREE.SphereGeometry(0.19, 8, 6), silverMat);
+    belly.scale.set(0.42, 0.5, 1.85);
+    belly.position.set(0, -0.055, 0.02);
+    g.add(belly);
+
+    // Iconic golden-yellow oval behind each gill!
+    for (const sx of [-1, 1]) {
+      const spot = new THREE.Mesh(new THREE.SphereGeometry(0.052, 6, 5), goldPatch);
+      spot.scale.set(0.35, 0.85, 1.35);
+      spot.position.set(sx * 0.095, 0.015, 0.15);
+      g.add(spot);
+    }
+
+    const dorsal = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.17, 4), jadeMat);
+    dorsal.position.set(0, 0.2, 0.04);
+    dorsal.rotation.x = -0.3;
+    const adipose = new THREE.Mesh(new THREE.ConeGeometry(0.026, 0.075, 4), jadeMat);
+    adipose.position.set(0, 0.14, -0.26);
+    adipose.rotation.x = -0.4;
+    g.add(dorsal, adipose);
+
+    const { wingL, wingR } = addPectoralFins(g, silverMat, { x: 0.1, y: -0.04, z: 0.14, len: 0.18 });
+    const tail = createTailPivot(g, 0, -0.43);
+    addForkedTail(tail, jadeMat, { len: 0.3, spread: 0.16, bladeW: 0.08 });
+    addFishEyes(g, 0.085, 0.035, 0.34, 0.038);
+
+    g.scale.setScalar(0.82);
+    return { group: g, wingL, wingR, tailMesh: tail };
+  },
+
+  // 5. 紅鯛魚 — Festive vermilion-red snapper with broad deep body, sky-blue flecks & golden eyes
+  red_snapper() {
+    const g = new THREE.Group();
+    const redMat = makeMat(0xe85f41, { roughness: 0.4, metalness: 0.1 });
+    const deepRed = makeMat(0xc93f24, { roughness: 0.48 });
+    const bellyMat = makeMat(0xffdfd6, { roughness: 0.42 });
+    const fleckMat = makeMat(0x7be0ff, { roughness: 0.25, emissive: 0x2a8fb0, emissiveIntensity: 0.3 });
+    const goldEye = makeMat(0xffd65a, { roughness: 0.25 });
+
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.32, 9, 7), redMat);
+    body.scale.set(0.54, 1.06, 1.56);
+    g.add(body);
+
+    const belly = new THREE.Mesh(new THREE.SphereGeometry(0.26, 8, 6), bellyMat);
+    belly.scale.set(0.46, 0.56, 1.32);
+    belly.position.set(0, -0.14, 0.04);
+    g.add(belly);
+
+    // Spiky red dorsal crest
+    for (let i = 0; i < 6; i++) {
+      const sp = new THREE.Mesh(new THREE.ConeGeometry(0.036, 0.17 - i * 0.012, 4), deepRed);
+      sp.position.set(0, 0.35 - i * 0.012, 0.2 - i * 0.085);
+      sp.rotation.x = -0.32;
+      g.add(sp);
+    }
+
+    // Iridescent sky-blue flecks on upper flank
+    for (const sz of [-0.14, -0.01, 0.12]) {
+      for (const sx of [-1, 1]) {
+        const dot = new THREE.Mesh(new THREE.SphereGeometry(0.022, 5, 4), fleckMat);
+        dot.position.set(sx * 0.145, 0.15, sz);
+        g.add(dot);
+      }
+    }
+
+    const anal = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.14, 0.2), deepRed);
+    anal.position.set(0, -0.28, -0.16);
+    anal.rotation.x = 0.25;
+    g.add(anal);
+
+    const { wingL, wingR } = addPectoralFins(g, redMat, { x: 0.16, y: -0.05, z: 0.14, len: 0.24, width: 0.12 });
+    const tail = createTailPivot(g, 0, -0.47);
+    addForkedTail(tail, deepRed, { len: 0.36, spread: 0.22, bladeW: 0.11 });
+    addFishEyes(g, 0.14, 0.075, 0.34, 0.05, goldEye);
+
+    g.scale.setScalar(0.98);
+    return { group: g, wingL, wingR, tailMesh: tail };
+  },
+
+  // 6. 海灣魷魚 — Pearlescent torpedo squid swimming mantle-first (+Z) with diamond side fins & trailing tentacles
+  squid() {
+    const g = new THREE.Group();
+    const mantleMat = makeMat(0xf7e7dc, { roughness: 0.32, transparent: true, opacity: 0.9, emissive: 0x3b2a26, emissiveIntensity: 0.15 });
+    const finMat = makeMat(0xf0c5b6, { roughness: 0.38, transparent: true, opacity: 0.85 });
+    const dotMat = makeMat(0xe08f7b, { roughness: 0.5 });
+
+    // Pointed torpedo mantle extending toward +Z
+    const mantle = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.68, 8), mantleMat);
+    mantle.rotation.x = Math.PI * 0.5;
+    mantle.position.set(0, 0, 0.22);
+    g.add(mantle);
+
+    // Subtle coral chromatophore spots on mantle
+    for (const [sx, sy, sz] of [[-0.09, 0.08, 0.16], [0.1, 0.06, 0.22], [0, 0.12, 0.08], [-0.07, 0.06, 0.32]]) {
+      const sp = new THREE.Mesh(new THREE.SphereGeometry(0.022, 5, 4), dotMat);
+      sp.position.set(sx, sy, sz);
+      g.add(sp);
+    }
+
+    // Diamond mantle side fins (flutter via wingL/wingR!)
+    const wingL = new THREE.Group();
+    wingL.position.set(-0.08, 0, 0.34);
+    const wingR = new THREE.Group();
+    wingR.position.set(0.08, 0, 0.34);
+    for (const [piv, sx] of [[wingL, -1], [wingR, 1]]) {
+      const f = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.28, 4), finMat);
+      f.scale.set(1.0, 1.0, 0.22);
+      f.rotation.z = sx * -Math.PI * 0.5;
+      f.position.set(sx * 0.12, 0, 0);
+      piv.add(f);
+    }
+    g.add(wingL, wingR);
+
+    // Head collar & big expressive dark eyes
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.17, 8, 6), finMat);
+    head.position.set(0, 0, -0.14);
+    g.add(head);
+    addFishEyes(g, 0.145, 0.02, -0.14, 0.058, makeMat(0xffffff), makeMat(0x181620));
+
+    // Trailing tentacle bundle attached to tailMesh so they wave smoothly behind!
+    const tail = createTailPivot(g, 0, -0.22);
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2;
+      const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.032, 0.44, 5), finMat);
+      arm.rotation.x = Math.PI * 0.5;
+      arm.position.set(Math.cos(a) * 0.075, Math.sin(a) * 0.075, -0.22);
+      tail.add(arm);
+    }
+    // Two longer club-tipped feeding tentacles
+    for (const sx of [-0.055, 0.055]) {
+      const longArm = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.022, 0.62, 5), finMat);
+      longArm.rotation.x = Math.PI * 0.5;
+      longArm.position.set(sx, -0.02, -0.32);
+      const club = new THREE.Mesh(new THREE.SphereGeometry(0.035, 5, 4), dotMat);
+      club.scale.set(0.8, 0.8, 1.4);
+      club.position.set(sx, -0.02, -0.63);
+      tail.add(longArm, club);
+    }
+
+    g.scale.setScalar(0.9);
+    return { group: g, wingL, wingR, tailMesh: tail };
+  },
+
+  // 7. 雨滴鬥魚 — Jewel-cyan Betta fish with dramatic flowing ruffled veil dorsal, anal & half-moon tail fins!
+  rain_frogfish() {
+    const g = new THREE.Group();
+    const bodyMat = makeMat(0x28b5d4, { roughness: 0.28, metalness: 0.25, emissive: 0x0b5266, emissiveIntensity: 0.3 });
+    const veilCyan = makeMat(0x64dfdf, { roughness: 0.32, transparent: true, opacity: 0.86, side: THREE.DoubleSide });
+    const veilViolet = makeMat(0x8338ec, { roughness: 0.35, transparent: true, opacity: 0.78, side: THREE.DoubleSide });
+
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.21, 9, 7), bodyMat);
+    body.scale.set(0.46, 0.78, 1.55);
+    body.position.z = 0.08;
+    g.add(body);
+
+    // Tall billowy sail dorsal veil
+    const dorsal = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.024, 7), veilCyan);
+    dorsal.rotation.z = Math.PI * 0.5;
+    dorsal.scale.set(1.15, 1, 1.1);
+    dorsal.position.set(0, 0.24, -0.06);
+    g.add(dorsal);
+
+    // Grand sweeping violet-cyan curtain anal fin
+    const anal = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.024, 7), veilViolet);
+    anal.rotation.z = Math.PI * 0.5;
+    anal.scale.set(1.05, 1, 1.25);
+    anal.position.set(0, -0.22, -0.06);
+    g.add(anal);
+
+    const { wingL, wingR } = addPectoralFins(g, veilCyan, { x: 0.1, y: -0.06, z: 0.14, len: 0.22, width: 0.14 });
+
+    // Giant half-moon ruffled veil tail!
+    const tail = createTailPivot(g, 0, -0.22);
+    const fanMain = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.022, 9), veilCyan);
+    fanMain.rotation.z = Math.PI * 0.5;
+    fanMain.scale.set(1.1, 1, 1.15);
+    fanMain.position.set(0, 0, -0.26);
+    const fanTrim = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 0.028, 7), veilViolet);
+    fanTrim.rotation.z = Math.PI * 0.5;
+    fanTrim.position.set(0, -0.06, -0.32);
+    tail.add(fanMain, fanTrim);
+
+    addFishEyes(g, 0.095, 0.04, 0.28, 0.04);
+    g.scale.setScalar(0.84);
+    return { group: g, wingL, wingR, tailMesh: tail };
+  },
+
+  // 8. 小丑魚 — Cheerful tangerine-orange clownfish with 3 crisp black-edged white vertical bands
+  clownfish() {
+    const g = new THREE.Group();
+    const orangeMat = makeMat(0xff7315, { roughness: 0.42 });
+    const whiteMat = makeMat(0xffffff, { roughness: 0.45 });
+    const blackMat = makeMat(0x1b1816, { roughness: 0.55 });
+
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.26, 10, 8), orangeMat);
+    body.scale.set(0.56, 0.92, 1.48);
+    g.add(body);
+
+    // 3 iconic white bands with thin black edges
+    const bands = [
+      { z: 0.2, sx: 0.128, sy: 0.195, w: 0.068 },
+      { z: 0.0, sx: 0.152, sy: 0.244, w: 0.092 },
+      { z: -0.22, sx: 0.112, sy: 0.162, w: 0.056 }
+    ];
+    for (const b of bands) {
+      const border = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, b.w + 0.026, 10), blackMat);
+      border.rotation.x = Math.PI * 0.5;
+      border.scale.set(b.sx, 1, b.sy);
+      border.position.z = b.z;
+      const stripe = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, b.w, 10), whiteMat);
+      stripe.rotation.x = Math.PI * 0.5;
+      stripe.scale.set(b.sx * 1.02, 1, b.sy * 1.02);
+      stripe.position.z = b.z;
+      g.add(border, stripe);
+    }
+
+    // Twin rounded black-trimmed dorsal fins
+    for (const [dz, r] of [[0.06, 0.11], [-0.12, 0.095]]) {
+      const fin = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.028, 7), orangeMat);
+      fin.rotation.z = Math.PI * 0.5;
+      fin.position.set(0, 0.24, dz);
+      const rim = new THREE.Mesh(new THREE.BoxGeometry(0.032, 0.025, r * 1.6), blackMat);
+      rim.position.set(0, 0.24 + r * 0.9, dz);
+      g.add(fin, rim);
+    }
+
+    const { wingL, wingR } = addPectoralFins(g, orangeMat, { x: 0.145, y: -0.05, z: 0.1, len: 0.18, width: 0.12 });
+    const tail = createTailPivot(g, 0, -0.35);
+    addRoundedTail(tail, orangeMat, { len: 0.26, height: 0.26, trimMat: blackMat });
+    addFishEyes(g, 0.115, 0.055, 0.27, 0.042);
+
+    g.scale.setScalar(0.72);
+    return { group: g, wingL, wingR, tailMesh: tail };
+  },
+
+  // 9. 藍倒吊 — Vibrant royal-blue oval surgeonfish with iconic black palette sweep & lemon-yellow wedge tail
+  blue_tang() {
+    const g = new THREE.Group();
+    const blueMat = makeMat(0x1565c0, { roughness: 0.35, metalness: 0.1 });
+    const blackMat = makeMat(0x1a1c22, { roughness: 0.45 });
+    const yellowMat = makeMat(0xffe135, { roughness: 0.38 });
+
+    // Flat compressed oval reef tang disc
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.3, 10, 8), blueMat);
+    body.scale.set(0.36, 0.95, 1.48);
+    g.add(body);
+
+    // Iconic black painter's palette side sweep on both sides
+    for (const sx of [-1, 1]) {
+      const upperBar = new THREE.Mesh(new THREE.BoxGeometry(0.024, 0.11, 0.5), blackMat);
+      upperBar.position.set(sx * 0.105, 0.12, 0.0);
+      upperBar.rotation.x = 0.08;
+      const rearSweep = new THREE.Mesh(new THREE.BoxGeometry(0.024, 0.12, 0.34), blackMat);
+      rearSweep.position.set(sx * 0.102, 0.02, -0.2);
+      rearSweep.rotation.x = -0.38;
+      g.add(upperBar, rearSweep);
+    }
+
+    // Tall blue dorsal & anal skirts
+    const dorsal = new THREE.Mesh(new THREE.BoxGeometry(0.026, 0.12, 0.5), blueMat);
+    dorsal.position.set(0, 0.28, -0.02);
+    const anal = new THREE.Mesh(new THREE.BoxGeometry(0.026, 0.11, 0.42), blueMat);
+    anal.position.set(0, -0.27, -0.04);
+    g.add(dorsal, anal);
+
+    const { wingL, wingR } = addPectoralFins(g, yellowMat, { x: 0.11, y: -0.05, z: 0.12, len: 0.19, width: 0.1 });
+
+    // Signature bright lemon-yellow wedge tail with black upper/lower trim bars!
+    const tail = createTailPivot(g, 0, -0.41);
+    const wedge = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.3, 4), yellowMat);
+    wedge.rotation.x = Math.PI * 0.5;
+    wedge.scale.set(0.16, 1, 1.1);
+    wedge.position.set(0, 0, -0.15);
+    tail.add(wedge);
+    for (const sy of [-1, 1]) {
+      const trim = new THREE.Mesh(new THREE.BoxGeometry(0.042, 0.036, 0.32), blackMat);
+      trim.position.set(0, sy * 0.11, -0.16);
+      trim.rotation.x = sy * 0.56;
+      tail.add(trim);
+    }
+
+    addFishEyes(g, 0.095, 0.075, 0.3, 0.042);
+    g.scale.setScalar(0.84);
+    return { group: g, wingL, wingR, tailMesh: tail };
+  },
+
+  // 10. 刺河豚 — Round inflated golden sphere bristling with ivory spikes, big eyes & tiny fluttering fins
+  pufferfish() {
+    const g = new THREE.Group();
+    const yellowMat = makeMat(0xf4cf57, { roughness: 0.55 });
+    const bellyMat = makeMat(0xfff7dc, { roughness: 0.58 });
+    const spotMat = makeMat(0xb0862b, { roughness: 0.6 });
+    const spineMat = makeMat(0xfff1c2, { roughness: 0.45 });
+    const lipMat = makeMat(0xe87a64, { roughness: 0.45 });
+
+    // Round puffed-up balloon body!
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.32, 10, 8), yellowMat);
+    body.scale.set(0.98, 0.96, 1.08);
+    g.add(body);
+
+    const belly = new THREE.Mesh(new THREE.SphereGeometry(0.29, 9, 7), bellyMat);
+    belly.scale.set(0.92, 0.62, 0.95);
+    belly.position.set(0, -0.13, 0.02);
+    g.add(belly);
+
+    // 22 bristling radial ivory spines all around the sphere!
+    const spineGeo = new THREE.ConeGeometry(0.028, 0.13, 4);
+    const rings = [
+      { y: 0.27, r: 0.18, count: 6 },
+      { y: 0.11, r: 0.31, count: 8 },
+      { y: -0.08, r: 0.3, count: 8 }
+    ];
+    for (const ring of rings) {
+      for (let i = 0; i < ring.count; i++) {
+        const a = (i / ring.count) * Math.PI * 2 + ring.y;
+        const sx = Math.cos(a) * ring.r;
+        const sz = Math.sin(a) * ring.r;
+        // Keep space clear right on the face (+Z)
+        if (sz > 0.22 && Math.abs(sx) < 0.2) continue;
+        const sp = new THREE.Mesh(spineGeo, spineMat);
+        sp.position.set(sx, ring.y, sz);
+        sp.lookAt(sx * 2, ring.y * 2, sz * 2);
+        sp.rotateX(Math.PI * 0.5);
+        g.add(sp);
+      }
+    }
+
+    // Cute dorsal freckles
+    for (const [fx, fy, fz] of [[0, 0.31, 0.04], [-0.14, 0.26, -0.06], [0.14, 0.26, -0.04]]) {
+      const dot = new THREE.Mesh(new THREE.SphereGeometry(0.045, 5, 4), spotMat);
+      dot.scale.set(1, 0.4, 1);
+      dot.position.set(fx, fy, fz);
+      g.add(dot);
+    }
+
+    // Cute puckered O-mouth + big protruding eyes
+    const mouth = new THREE.Mesh(new THREE.TorusGeometry(0.042, 0.018, 5, 8), lipMat);
+    mouth.position.set(0, -0.02, 0.35);
+    g.add(mouth);
+    addFishEyes(g, 0.19, 0.09, 0.25, 0.065);
+
+    const { wingL, wingR } = addPectoralFins(g, bellyMat, { x: 0.3, y: 0.0, z: 0.02, len: 0.15, width: 0.11, sweep: 0.2 });
+    const tail = createTailPivot(g, 0, -0.33);
+    addRoundedTail(tail, yellowMat, { len: 0.2, height: 0.19 });
+
+    g.scale.setScalar(0.86);
+    return { group: g, wingL, wingR, tailMesh: tail };
+  },
+
+  // 11. 網紋裸胸鱔 — Long sinuous honeycomb olive-green moray eel with continuous dorsal crest & open toothy jaw
+  moray_eel() {
+    const g = new THREE.Group();
+    const oliveMat = makeMat(0x6c8c3f, { roughness: 0.52 });
+    const spotMat = makeMat(0x2f3e19, { roughness: 0.6 });
+    const crestMat = makeMat(0xa6c44b, { roughness: 0.45 });
+    const toothMat = makeMat(0xffffff, { roughness: 0.25 });
+    const goldEye = makeMat(0xffd94a, { roughness: 0.25 });
+
+    // Sinuous segmented front eel body
+    const frontSegs = [
+      { z: 0.34, x: 0.0, r: 0.12 },
+      { z: 0.16, x: 0.04, r: 0.125 },
+      { z: -0.04, x: 0.06, r: 0.12 },
+      { z: -0.24, x: 0.01, r: 0.112 }
+    ];
+    for (let i = 0; i < frontSegs.length; i++) {
+      const s = frontSegs[i];
+      const seg = new THREE.Mesh(new THREE.SphereGeometry(s.r, 8, 6), oliveMat);
+      seg.scale.set(0.85, 1.05, 1.45);
+      seg.position.set(s.x, 0, s.z);
+      g.add(seg);
+
+      // Continuous chartreuse dorsal crest fin
+      const crest = new THREE.Mesh(new THREE.BoxGeometry(0.028, 0.12, 0.22), crestMat);
+      crest.position.set(s.x, s.r + 0.03, s.z);
+      g.add(crest);
+
+      // Honeycomb dark spots on flanks
+      for (const sx of [-1, 1]) {
+        const dot = new THREE.Mesh(new THREE.SphereGeometry(0.032, 5, 4), spotMat);
+        dot.position.set(s.x + sx * s.r * 0.78, (i % 2 === 0 ? 0.02 : -0.03), s.z);
+        g.add(dot);
+      }
+    }
+
+    // Open upper & lower jaws with tiny sharp white fangs
+    const upperJaw = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.075, 0.24), oliveMat);
+    upperJaw.position.set(0, 0.045, 0.52);
+    upperJaw.rotation.x = -0.14;
+    const lowerJaw = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.06, 0.22), oliveMat);
+    lowerJaw.position.set(0, -0.055, 0.5);
+    lowerJaw.rotation.x = 0.22;
+    g.add(upperJaw, lowerJaw);
+
+    for (const tz of [0.49, 0.56]) {
+      for (const sx of [-0.04, 0.04]) {
+        const fang = new THREE.Mesh(new THREE.ConeGeometry(0.012, 0.045, 4), toothMat);
+        fang.rotation.x = Math.PI;
+        fang.position.set(sx, 0.005, tz);
+        g.add(fang);
+      }
+    }
+    addFishEyes(g, 0.085, 0.075, 0.44, 0.034, goldEye);
+
+    // Long tapering sinuous tail section on tailMesh!
+    const tail = createTailPivot(g, 0, -0.3);
+    const rearSegs = [
+      { z: -0.12, x: -0.04, r: 0.1 },
+      { z: -0.32, x: -0.06, r: 0.085 },
+      { z: -0.52, x: -0.02, r: 0.068 },
+      { z: -0.7, x: 0.03, r: 0.048 }
+    ];
+    for (const rs of rearSegs) {
+      const seg = new THREE.Mesh(new THREE.SphereGeometry(rs.r, 7, 5), oliveMat);
+      seg.scale.set(0.8, 1.08, 1.6);
+      seg.position.set(rs.x, 0, rs.z);
+      const cr = new THREE.Mesh(new THREE.BoxGeometry(0.024, rs.r * 1.15, 0.22), crestMat);
+      cr.position.set(rs.x, rs.r + 0.02, rs.z);
+      tail.add(seg, cr);
+    }
+
+    g.scale.setScalar(1.1);
+    return { group: g, wingL: null, wingR: null, tailMesh: tail };
+  },
+
+  // 12. 蘇眉魚 — Majestic giant turquoise Napoleon wrasse with prominent bulbous forehead hump & thick lips
+  napoleonfish() {
+    const g = new THREE.Group();
+    const tealMat = makeMat(0x2ec4b6, { roughness: 0.4 });
+    const deepTeal = makeMat(0x188f85, { roughness: 0.46 });
+    const cyanLine = makeMat(0x9bf6ff, { roughness: 0.3, emissive: 0x2ec4b6, emissiveIntensity: 0.25 });
+    const lipMat = makeMat(0x7be8de, { roughness: 0.45 });
+
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.36, 10, 8), tealMat);
+    body.scale.set(0.5, 1.08, 1.62);
+    g.add(body);
+
+    // Iconic bulbous forehead hump ("crown")!
+    const hump = new THREE.Mesh(new THREE.SphereGeometry(0.21, 8, 7), deepTeal);
+    hump.scale.set(0.76, 1.05, 1.02);
+    hump.position.set(0, 0.26, 0.32);
+    g.add(hump);
+
+    // Thick fleshy lips
+    const lips = new THREE.Mesh(new THREE.SphereGeometry(0.085, 6, 5), lipMat);
+    lips.scale.set(1.1, 0.85, 0.9);
+    lips.position.set(0, -0.06, 0.57);
+    g.add(lips);
+
+    // Vertical scale bar bands & bright cyan cheek stripes
+    for (const bz of [-0.22, -0.04, 0.14]) {
+      const bar = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.44, 0.045), deepTeal);
+      bar.position.set(0, 0.02, bz);
+      g.add(bar);
+    }
+    for (const sx of [-1, 1]) {
+      for (const cy of [-0.03, 0.04]) {
+        const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.025, 0.2), cyanLine);
+        stripe.position.set(sx * 0.155, cy, 0.36);
+        g.add(stripe);
+      }
+    }
+
+    const dorsal = new THREE.Mesh(new THREE.BoxGeometry(0.032, 0.14, 0.56), deepTeal);
+    dorsal.position.set(0, 0.38, -0.14);
+    const anal = new THREE.Mesh(new THREE.BoxGeometry(0.032, 0.14, 0.42), deepTeal);
+    anal.position.set(0, -0.35, -0.18);
+    g.add(dorsal, anal);
+
+    const { wingL, wingR } = addPectoralFins(g, lipMat, { x: 0.18, y: -0.06, z: 0.16, len: 0.26, width: 0.16 });
+    const tail = createTailPivot(g, 0, -0.54);
+    addRoundedTail(tail, deepTeal, { len: 0.36, height: 0.44 });
+    addFishEyes(g, 0.145, 0.12, 0.38, 0.046);
+
+    g.scale.setScalar(1.16);
+    return { group: g, wingL, wingR, tailMesh: tail };
+  },
+
+  // 13. 鬼蝠魟 — Giant diamond-winged ocean manta ray with white shoulder patches, cephalic horns & whip tail!
+  manta_ray() {
+    const g = new THREE.Group();
+    const navyMat = makeMat(0x283a4f, { roughness: 0.46 });
+    const whiteMat = makeMat(0xf0f6fa, { roughness: 0.5 });
+
+    // Central flattened ray body
+    const core = new THREE.Mesh(new THREE.SphereGeometry(0.32, 9, 7), navyMat);
+    core.scale.set(1.05, 0.28, 1.55);
+    g.add(core);
+
+    const belly = new THREE.Mesh(new THREE.SphereGeometry(0.28, 8, 6), whiteMat);
+    belly.scale.set(0.95, 0.18, 1.38);
+    belly.position.y = -0.055;
+    g.add(belly);
+
+    // Iconic pale white triangular shoulder patches
+    for (const sx of [-1, 1]) {
+      const patch = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.028, 0.24), whiteMat);
+      patch.position.set(sx * 0.16, 0.075, 0.14);
+      patch.rotation.y = sx * 0.35;
+      g.add(patch);
+    }
+
+    // Twin forward-curving cephalic head horn fins (+Z)
+    for (const sx of [-1, 1]) {
+      const horn = new THREE.Mesh(new THREE.ConeGeometry(0.055, 0.3, 5), navyMat);
+      horn.rotation.x = Math.PI * 0.5;
+      horn.rotation.z = sx * 0.22;
+      horn.scale.set(0.75, 1, 0.45);
+      horn.position.set(sx * 0.16, 0, 0.54);
+      g.add(horn);
+    }
+
+    // Huge sweeping triangular manta wings (flap smoothly via wingL & wingR!)
+    const wingL = new THREE.Group();
+    wingL.position.set(-0.22, 0, 0.04);
+    const wingR = new THREE.Group();
+    wingR.position.set(0.22, 0, 0.04);
+    for (const [piv, sx] of [[wingL, -1], [wingR, 1]]) {
+      const wTop = new THREE.Mesh(new THREE.ConeGeometry(0.42, 0.72, 4), navyMat);
+      wTop.rotation.z = sx * -Math.PI * 0.5;
+      wTop.scale.set(0.18, 1, 1.05);
+      wTop.position.set(sx * 0.34, 0.01, -0.02);
+      const wBot = new THREE.Mesh(new THREE.ConeGeometry(0.36, 0.62, 4), whiteMat);
+      wBot.rotation.z = sx * -Math.PI * 0.5;
+      wBot.scale.set(0.12, 1, 0.92);
+      wBot.position.set(sx * 0.28, -0.022, -0.02);
+      piv.add(wTop, wBot);
+    }
+    g.add(wingL, wingR);
+
+    // Long thin whip tail!
+    const tail = createTailPivot(g, 0, -0.45);
+    const whip = new THREE.Mesh(new THREE.ConeGeometry(0.028, 0.82, 5), navyMat);
+    whip.rotation.x = -Math.PI * 0.5;
+    whip.position.set(0, 0, -0.4);
+    tail.add(whip);
+
+    addFishEyes(g, 0.21, 0.03, 0.36, 0.032, whiteMat, makeMat(0x14181f));
+    g.scale.setScalar(0.92);
+    return { group: g, wingL, wingR, tailMesh: tail };
+  },
+
+  // 14. 紅白錦鯉 — Pearl-white Kohaku koi with bold vermilion dorsal patches, barbels & flowing white fins
+  koi() {
+    const g = new THREE.Group();
+    const whiteMat = makeMat(0xfffdf9, { roughness: 0.36 });
+    const redMat = makeMat(0xf94144, { roughness: 0.4 });
+    const finMat = makeMat(0xfff7f2, { roughness: 0.42, transparent: true, opacity: 0.9 });
+
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.28, 10, 8), whiteMat);
+    body.scale.set(0.68, 0.85, 1.82);
+    g.add(body);
+
+    // Bold vermilion-red Kohaku dorsal markings (crown, saddle, rear)
+    const patches = [
+      { y: 0.13, z: 0.34, sx: 0.13, sy: 0.07, sz: 0.13 },
+      { y: 0.17, z: 0.02, sx: 0.19, sy: 0.1, sz: 0.24 },
+      { y: 0.11, z: -0.3, sx: 0.13, sy: 0.08, sz: 0.15 }
+    ];
+    for (const p of patches) {
+      const m = new THREE.Mesh(new THREE.SphereGeometry(1, 7, 5), redMat);
+      m.scale.set(p.sx, p.sy, p.sz);
+      m.position.set(0, p.y, p.z);
+      g.add(m);
+    }
+
+    // Twin delicate whisker barbels
+    for (const sx of [-1, 1]) {
+      const barb = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.012, 0.13, 4), redMat);
+      barb.position.set(sx * 0.075, -0.07, 0.5);
+      barb.rotation.z = sx * 0.6;
+      barb.rotation.x = 0.4;
+      g.add(barb);
+    }
+
+    const dorsal = new THREE.Mesh(new THREE.BoxGeometry(0.028, 0.15, 0.4), finMat);
+    dorsal.position.set(0, 0.27, -0.05);
+    g.add(dorsal);
+
+    const { wingL, wingR } = addPectoralFins(g, finMat, { x: 0.17, y: -0.08, z: 0.14, len: 0.28, width: 0.17, sweep: 0.42 });
+    const tail = createTailPivot(g, 0, -0.48);
+    addForkedTail(tail, finMat, { len: 0.38, spread: 0.2, bladeW: 0.13 });
+    addFishEyes(g, 0.13, 0.05, 0.38, 0.04, makeMat(0x1b1816), makeMat(0x1b1816));
+
+    g.scale.setScalar(0.98);
+    return { group: g, wingL, wingR, tailMesh: tail };
+  },
+
+  // 15. 黃金錦鯉 — Legendary metallic molten-gold koi with glowing sheen, golden barbels & gossamer veil fins
+  golden_koi() {
+    const g = new THREE.Group();
+    const goldMat = makeMat(0xffc93c, { roughness: 0.18, metalness: 0.65, emissive: 0xb57400, emissiveIntensity: 0.42 });
+    const sheenMat = makeMat(0xfff1a8, { roughness: 0.16, metalness: 0.48, emissive: 0xffd166, emissiveIntensity: 0.48, transparent: true, opacity: 0.9 });
+
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.29, 10, 8), goldMat);
+    body.scale.set(0.68, 0.86, 1.88);
+    g.add(body);
+
+    const highlight = new THREE.Mesh(new THREE.SphereGeometry(0.24, 8, 6), sheenMat);
+    highlight.scale.set(0.54, 0.45, 1.55);
+    highlight.position.set(0, 0.13, 0.02);
+    g.add(highlight);
+
+    const crest = new THREE.Mesh(new THREE.BoxGeometry(0.026, 0.19, 0.46), sheenMat);
+    crest.position.set(0, 0.29, -0.05);
+    g.add(crest);
+
+    // Twin golden barbels
+    for (const sx of [-1, 1]) {
+      const barb = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.013, 0.15, 4), goldMat);
+      barb.position.set(sx * 0.075, -0.07, 0.53);
+      barb.rotation.z = sx * 0.6;
+      barb.rotation.x = 0.4;
+      g.add(barb);
+    }
+
+    const { wingL, wingR } = addPectoralFins(g, sheenMat, { x: 0.18, y: -0.08, z: 0.16, len: 0.34, width: 0.2, sweep: 0.42 });
+    const tail = createTailPivot(g, 0, -0.5);
+    addForkedTail(tail, sheenMat, { len: 0.48, spread: 0.24, bladeW: 0.15 });
+    addFishEyes(g, 0.135, 0.05, 0.4, 0.042, makeMat(0x1e160d), makeMat(0x1e160d));
+
+    g.scale.setScalar(1.06);
+    return { group: g, wingL, wingR, tailMesh: tail };
+  },
+
+  // 16. 櫻花甜蝦 — Translucent sakura-pink arched segmented shrimp with stalked bead eyes & sweeping whiskers!
+  sakura_shrimp() {
+    const g = new THREE.Group();
+    const pinkMat = makeMat(0xff9ebb, { roughness: 0.28, transparent: true, opacity: 0.86, emissive: 0x6e233b, emissiveIntensity: 0.2 });
+    const bandMat = makeMat(0xf06595, { roughness: 0.35 });
+    const eyeMat = makeMat(0x1a1518, { roughness: 0.15 });
+
+    // Arched segmented carapace curving down toward tail (-Z)
+    const segs = [
+      { z: 0.22, y: 0.04, r: 0.125 },
+      { z: 0.06, y: 0.08, r: 0.12 },
+      { z: -0.1, y: 0.06, r: 0.105 },
+      { z: -0.24, y: -0.02, r: 0.085 }
+    ];
+    for (let i = 0; i < segs.length; i++) {
+      const s = segs[i];
+      const seg = new THREE.Mesh(new THREE.SphereGeometry(s.r, 7, 6), i % 2 === 0 ? pinkMat : bandMat);
+      seg.scale.set(0.82, 0.92, 1.3);
+      seg.position.set(0, s.y, s.z);
+      g.add(seg);
+    }
+
+    // Pointed rostrum horn + cute stalked black bead eyes
+    const rostrum = new THREE.Mesh(new THREE.ConeGeometry(0.032, 0.18, 4), bandMat);
+    rostrum.rotation.x = Math.PI * 0.45;
+    rostrum.position.set(0, 0.07, 0.39);
+    g.add(rostrum);
+    for (const sx of [-0.075, 0.075]) {
+      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.034, 6, 5), eyeMat);
+      eye.position.set(sx, 0.09, 0.34);
+      g.add(eye);
+    }
+
+    // Extra-long sweeping whisker antennae!
+    for (const sx of [-1, 1]) {
+      const ant = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.011, 0.55, 4), bandMat);
+      ant.position.set(sx * 0.12, 0.08, 0.56);
+      ant.rotation.x = Math.PI * 0.42;
+      ant.rotation.z = sx * -0.35;
+      g.add(ant);
+    }
+
+    // Tiny fluttering underside swimmeret legs (wingL/wingR)
+    const { wingL, wingR } = addPectoralFins(g, bandMat, { x: 0.08, y: -0.06, z: 0.06, len: 0.14, width: 0.16, sweep: 0.1, tilt: -0.9 });
+
+    // 3-blade shrimp fan uropod tail
+    const tail = createTailPivot(g, -0.06, -0.31);
+    for (const rx of [-0.35, 0, 0.35]) {
+      const blade = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.018, 0.22), bandMat);
+      blade.position.set(rx * 0.2, -0.04, -0.1);
+      blade.rotation.y = rx;
+      blade.rotation.x = 0.25;
+      tail.add(blade);
+    }
+
+    g.scale.setScalar(0.76);
+    return { group: g, wingL, wingR, tailMesh: tail };
+  },
+
+  // 17. 紅腹食人魚 — Stocky silver-slate diamond piranha with blazing crimson belly & fierce toothy underbite
+  piranha() {
+    const g = new THREE.Group();
+    const silverMat = makeMat(0x82919e, { roughness: 0.32, metalness: 0.36 });
+    const redMat = makeMat(0xd62828, { roughness: 0.42 });
+    const darkMat = makeMat(0x475159, { roughness: 0.5 });
+    const toothMat = makeMat(0xffffff, { roughness: 0.2 });
+    const redEye = makeMat(0xff4d4d, { roughness: 0.25 });
+
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.3, 9, 7), silverMat);
+    body.scale.set(0.46, 1.08, 1.38);
+    g.add(body);
+
+    // Blazing crimson-red belly & throat
+    const belly = new THREE.Mesh(new THREE.SphereGeometry(0.28, 8, 6), redMat);
+    belly.scale.set(0.45, 0.62, 1.24);
+    belly.position.set(0, -0.14, 0.06);
+    g.add(belly);
+
+    // Jutting bulldog underbite jaw + tiny sharp white teeth!
+    const jaw = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.11, 0.18), redMat);
+    jaw.position.set(0, -0.09, 0.36);
+    jaw.rotation.x = -0.3;
+    g.add(jaw);
+    for (const sx of [-0.055, 0, 0.055]) {
+      const tooth = new THREE.Mesh(new THREE.ConeGeometry(0.016, 0.048, 4), toothMat);
+      tooth.position.set(sx, -0.025, 0.42);
+      g.add(tooth);
+    }
+
+    const dorsal = new THREE.Mesh(new THREE.ConeGeometry(0.075, 0.22, 4), darkMat);
+    dorsal.position.set(0, 0.35, -0.04);
+    dorsal.rotation.x = -0.35;
+    const anal = new THREE.Mesh(new THREE.BoxGeometry(0.028, 0.14, 0.24), redMat);
+    anal.position.set(0, -0.32, -0.12);
+    g.add(dorsal, anal);
+
+    const { wingL, wingR } = addPectoralFins(g, redMat, { x: 0.14, y: -0.1, z: 0.12, len: 0.19, width: 0.11 });
+    const tail = createTailPivot(g, 0, -0.38);
+    addForkedTail(tail, darkMat, { len: 0.3, spread: 0.19, bladeW: 0.11 });
+    addFishEyes(g, 0.12, 0.09, 0.26, 0.048, redEye);
+
+    g.scale.setScalar(0.84);
+    return { group: g, wingL, wingR, tailMesh: tail };
+  },
+
+  // 18. 銀龍魚 — Sleek elongated metallic silver-pearl ribbon arowana with upturned dragon jaw & twin chin barbels
+  arowana() {
+    const g = new THREE.Group();
+    const silverMat = makeMat(0xe6f2f8, { roughness: 0.18, metalness: 0.58 });
+    const finMat = makeMat(0xbcd8e6, { roughness: 0.28, metalness: 0.35, transparent: true, opacity: 0.9 });
+    const barbelMat = makeMat(0x7c9fb0, { roughness: 0.35 });
+
+    // Sleek elongated laterally-flat tapered silver ribbon body
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.2, 10, 8), silverMat);
+    body.scale.set(0.38, 0.88, 2.85);
+    g.add(body);
+
+    // Upturned dragon snout & twin forward-pointing chin barbels!
+    const jaw = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.11, 0.22), silverMat);
+    jaw.position.set(0, 0.025, 0.52);
+    jaw.rotation.x = -0.26;
+    g.add(jaw);
+    for (const sx of [-0.038, 0.038]) {
+      const barb = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.012, 0.2, 4), barbelMat);
+      barb.rotation.x = Math.PI * 0.44;
+      barb.rotation.z = Math.sign(sx) * -0.22;
+      barb.position.set(sx, 0.015, 0.68);
+      g.add(barb);
+    }
+
+    // Long continuous rear dorsal & anal ribbon fins
+    const dorsal = new THREE.Mesh(new THREE.BoxGeometry(0.022, 0.095, 0.42), finMat);
+    dorsal.position.set(0, 0.175, -0.26);
+    const anal = new THREE.Mesh(new THREE.BoxGeometry(0.022, 0.125, 0.5), finMat);
+    anal.position.set(0, -0.185, -0.22);
+    g.add(dorsal, anal);
+
+    // Swept-down long dragon pectoral fins!
+    const { wingL, wingR } = addPectoralFins(g, finMat, { x: 0.075, y: -0.09, z: 0.26, len: 0.3, width: 0.12, sweep: 0.65, tilt: -0.58 });
+    const tail = createTailPivot(g, 0, -0.52);
+    addRoundedTail(tail, finMat, { len: 0.28, height: 0.23 });
+    addFishEyes(g, 0.068, 0.06, 0.44, 0.036);
+
+    g.scale.setScalar(1.06);
+    return { group: g, wingL, wingR, tailMesh: tail };
+  },
+
+  // 19. 巨骨舌魚 — Colossal ancient freshwater torpedo giant grading from emerald armor to crimson-red tail!
+  arapaima() {
+    const g = new THREE.Group();
+    const emeraldMat = makeMat(0x366957, { roughness: 0.48 });
+    const darkArmor = makeMat(0x23473b, { roughness: 0.54 });
+    const crimsonMat = makeMat(0xc92a2a, { roughness: 0.4 });
+    const goldEye = makeMat(0xffd166, { roughness: 0.25 });
+
+    // Streamlined tapered prehistoric emerald torso grading into crimson rear
+    const mainBody = new THREE.Mesh(new THREE.SphereGeometry(0.24, 10, 8), emeraldMat);
+    mainBody.scale.set(0.68, 0.84, 2.75);
+    mainBody.position.z = 0.06;
+    g.add(mainBody);
+
+    // Tapered flattened prehistoric pike snout
+    const snout = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), darkArmor);
+    snout.scale.set(0.85, 0.65, 1.55);
+    snout.position.set(0, 0.01, 0.62);
+    g.add(snout);
+
+    // Dramatic crimson-red scaled rear sleeve smoothly wrapping the rear third
+    const rearSleeve = new THREE.Mesh(new THREE.SphereGeometry(0.22, 9, 7), crimsonMat);
+    rearSleeve.scale.set(0.66, 0.82, 1.55);
+    rearSleeve.position.z = -0.34;
+    g.add(rearSleeve);
+
+    // Far-back red-trimmed dorsal & anal fins
+    const dorsal = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.12, 0.36), crimsonMat);
+    dorsal.position.set(0, 0.19, -0.4);
+    const anal = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.115, 0.34), crimsonMat);
+    anal.position.set(0, -0.185, -0.4);
+    g.add(dorsal, anal);
+
+    const { wingL, wingR } = addPectoralFins(g, emeraldMat, { x: 0.16, y: -0.07, z: 0.34, len: 0.24, width: 0.13 });
+    const tail = createTailPivot(g, 0, -0.62);
+    addRoundedTail(tail, crimsonMat, { len: 0.3, height: 0.28 });
+    addFishEyes(g, 0.115, 0.045, 0.64, 0.036, goldEye);
+
+    g.scale.setScalar(1.06);
+    return { group: g, wingL, wingR, tailMesh: tail };
+  },
+
+  // 20. 溫泉金鱒 — Glowing warm amber-gold trout with rosy-coral horizontal stripe, dark parr bars & white-edged fins
+  golden_trout() {
+    const g = new THREE.Group();
+    const amberMat = makeMat(0xf4a261, { roughness: 0.32, metalness: 0.22, emissive: 0x7d3b0a, emissiveIntensity: 0.32 });
+    const coralStripe = makeMat(0xe65345, { roughness: 0.38 });
+    const parrMat = makeMat(0x8a4216, { roughness: 0.55 });
+    const whiteFin = makeMat(0xffe9cf, { roughness: 0.42 });
+
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.25, 9, 7), amberMat);
+    body.scale.set(0.54, 0.8, 1.85);
+    g.add(body);
+
+    // Vibrant rosy-coral lateral stripe + dark oval parr spots
+    for (const sx of [-1, 1]) {
+      const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.022, 0.065, 0.66), coralStripe);
+      stripe.position.set(sx * 0.125, 0, 0.0);
+      g.add(stripe);
+      for (const pz of [-0.18, -0.02, 0.14]) {
+        const parr = new THREE.Mesh(new THREE.SphereGeometry(0.036, 5, 4), parrMat);
+        parr.scale.set(0.35, 1.45, 0.72);
+        parr.position.set(sx * 0.132, 0.01, pz);
+        g.add(parr);
+      }
+    }
+
+    const dorsal = new THREE.Mesh(new THREE.BoxGeometry(0.026, 0.14, 0.2), amberMat);
+    dorsal.position.set(0, 0.22, 0.02);
+    dorsal.rotation.x = -0.22;
+    const adipose = new THREE.Mesh(new THREE.ConeGeometry(0.028, 0.08, 4), amberMat);
+    adipose.position.set(0, 0.16, -0.28);
+    g.add(dorsal, adipose);
+
+    const { wingL, wingR } = addPectoralFins(g, whiteFin, { x: 0.13, y: -0.07, z: 0.14, len: 0.21, width: 0.11 });
+    const tail = createTailPivot(g, 0, -0.44);
+    addForkedTail(tail, amberMat, { len: 0.32, spread: 0.17, trimMat: whiteFin });
+    addFishEyes(g, 0.11, 0.05, 0.34, 0.04);
+
+    g.scale.setScalar(0.96);
+    return { group: g, wingL, wingR, tailMesh: tail };
+  },
+
+  // 21. 提燈鮟鱇魚 — Chunky dark deep-sea anglerfish with huge toothy jaw & glowing bioluminescent lantern lure!
+  anglerfish() {
+    const g = new THREE.Group();
+    const deepMat = makeMat(0x434761, { roughness: 0.68 });
+    const darkMat = makeMat(0x2a2d40, { roughness: 0.72 });
+    const toothMat = makeMat(0xfefae0, { roughness: 0.25 });
+    const lureMat = makeMat(0x9ef7ee, { roughness: 0.15, emissive: 0x64dfdf, emissiveIntensity: 1.5 });
+    const eyeMat = makeMat(0xe0fbfc, { roughness: 0.2, emissive: 0x80ffdb, emissiveIntensity: 0.4 });
+
+    // Bulbous chunky deep-sea body
+    const body = new THREE.Mesh(new THREE.DodecahedronGeometry(0.32, 1), deepMat);
+    body.scale.set(0.88, 0.92, 1.18);
+    g.add(body);
+
+    // Cavernous protruding lower jaw studded with needle fangs!
+    const jaw = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.14, 0.26), darkMat);
+    jaw.position.set(0, -0.14, 0.3);
+    jaw.rotation.x = -0.32;
+    g.add(jaw);
+    for (let i = -2; i <= 2; i++) {
+      const fBot = new THREE.Mesh(new THREE.ConeGeometry(0.017, 0.08, 4), toothMat);
+      fBot.position.set(i * 0.062, -0.05, 0.4);
+      const fTop = new THREE.Mesh(new THREE.ConeGeometry(0.014, 0.065, 4), toothMat);
+      fTop.rotation.x = Math.PI;
+      fTop.position.set(i * 0.055, 0.03, 0.38);
+      g.add(fBot, fTop);
+    }
+
+    // Arching forehead fishing rod (illicium) + luminous bioluminescent lantern orb!
+    const stalk1 = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.02, 0.28, 5), darkMat);
+    stalk1.position.set(0, 0.3, 0.22);
+    stalk1.rotation.x = 0.55;
+    const stalk2 = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.014, 0.26, 5), darkMat);
+    stalk2.position.set(0, 0.34, 0.41);
+    stalk2.rotation.x = 1.65;
+    const orb = new THREE.Mesh(new THREE.SphereGeometry(0.072, 8, 6), lureMat);
+    orb.position.set(0, 0.28, 0.54);
+    const halo = new THREE.Mesh(
+      new THREE.SphereGeometry(0.14, 7, 6),
+      new THREE.MeshBasicMaterial({ color: 0x80ffdb, transparent: true, opacity: 0.35 })
+    );
+    halo.position.copy(orb.position);
+    g.add(stalk1, stalk2, orb, halo);
+
+    const dorsal = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.18, 4), darkMat);
+    dorsal.position.set(0, 0.28, -0.14);
+    dorsal.rotation.x = -0.45;
+    g.add(dorsal);
+
+    const { wingL, wingR } = addPectoralFins(g, darkMat, { x: 0.25, y: -0.06, z: 0.02, len: 0.19, width: 0.14 });
+    const tail = createTailPivot(g, 0, -0.34);
+    addRoundedTail(tail, darkMat, { len: 0.28, height: 0.3 });
+    addFishEyes(g, 0.18, 0.1, 0.28, 0.044, eyeMat);
+
+    g.scale.setScalar(0.96);
+    return { group: g, wingL, wingR, tailMesh: tail };
+  },
+
+  // 22. 藍槍魚 — Deep cobalt pelagic blue marlin with long sword bill, tall sickle sail dorsal & crescent tail!
+  blue_marlin() {
+    const g = new THREE.Group();
+    const cobaltMat = makeMat(0x1b4b8a, { roughness: 0.3, metalness: 0.26 });
+    const silverMat = makeMat(0xdfedf7, { roughness: 0.28, metalness: 0.34 });
+    const stripeMat = makeMat(0x78c2ff, { roughness: 0.35 });
+    const billMat = makeMat(0x122f57, { roughness: 0.4 });
+
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.24, 9, 7), cobaltMat);
+    body.scale.set(0.58, 0.78, 2.25);
+    g.add(body);
+
+    const belly = new THREE.Mesh(new THREE.SphereGeometry(0.21, 8, 6), silverMat);
+    belly.scale.set(0.52, 0.5, 2.02);
+    belly.position.set(0, -0.07, 0.02);
+    g.add(belly);
+
+    // Extra-long needle-sharp spear bill projecting forward (+Z)!
+    const bill = new THREE.Mesh(new THREE.ConeGeometry(0.036, 0.56, 6), billMat);
+    bill.rotation.x = Math.PI * 0.5;
+    bill.position.set(0, 0.02, 0.74);
+    g.add(bill);
+
+    // Tall sweeping sickle dorsal fin!
+    const sailFront = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.38, 4), cobaltMat);
+    sailFront.scale.set(0.32, 1, 1.3);
+    sailFront.position.set(0, 0.28, 0.18);
+    sailFront.rotation.x = -0.38;
+    const sailTrail = new THREE.Mesh(new THREE.BoxGeometry(0.024, 0.14, 0.42), cobaltMat);
+    sailTrail.position.set(0, 0.19, -0.1);
+    sailTrail.rotation.x = -0.18;
+    g.add(sailFront, sailTrail);
+
+    // Electric-cyan vertical stripes along flanks
+    for (const sz of [-0.14, 0.02, 0.18]) {
+      const bar = new THREE.Mesh(new THREE.BoxGeometry(0.27, 0.22, 0.03), stripeMat);
+      bar.position.set(0, 0.02, sz);
+      g.add(bar);
+    }
+
+    const { wingL, wingR } = addPectoralFins(g, cobaltMat, { x: 0.14, y: -0.06, z: 0.16, len: 0.34, width: 0.1, sweep: 0.72 });
+    const tail = createTailPivot(g, 0, -0.5);
+    addForkedTail(tail, billMat, { len: 0.44, spread: 0.28, bladeW: 0.075 });
+    addFishEyes(g, 0.11, 0.04, 0.4, 0.038);
+
+    g.scale.setScalar(0.98);
+    return { group: g, wingL, wingR, tailMesh: tail };
+  },
+
+  // 23. 帝王鮭 — Muscular terracotta-crimson spawning king salmon with hooked kype jaw & spotted olive back
+  king_salmon() {
+    const g = new THREE.Group();
+    const salmonMat = makeMat(0xc8553d, { roughness: 0.44 });
+    const backMat = makeMat(0x3f6156, { roughness: 0.5 });
+    const spotMat = makeMat(0x1f2b27, { roughness: 0.6 });
+
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.28, 9, 7), salmonMat);
+    body.scale.set(0.56, 0.85, 1.9);
+    g.add(body);
+
+    const back = new THREE.Mesh(new THREE.SphereGeometry(0.25, 8, 6), backMat);
+    back.scale.set(0.5, 0.55, 1.72);
+    back.position.set(0, 0.1, -0.02);
+    g.add(back);
+
+    // Iconic hooked salmon jaw (kype)
+    const upperKype = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.08, 0.16), backMat);
+    upperKype.position.set(0, 0.04, 0.52);
+    upperKype.rotation.x = 0.25;
+    const lowerKype = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.07, 0.16), salmonMat);
+    lowerKype.position.set(0, -0.06, 0.51);
+    lowerKype.rotation.x = -0.32;
+    g.add(upperKype, lowerKype);
+
+    // Dark spots on back
+    for (const sz of [-0.22, -0.04, 0.14]) {
+      for (const sx of [-0.11, 0.11]) {
+        const dot = new THREE.Mesh(new THREE.SphereGeometry(0.024, 5, 4), spotMat);
+        dot.position.set(sx, 0.15, sz);
+        g.add(dot);
+      }
+    }
+
+    const dorsal = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.16, 0.22), backMat);
+    dorsal.position.set(0, 0.25, 0.0);
+    dorsal.rotation.x = -0.25;
+    const adipose = new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.085, 4), salmonMat);
+    adipose.position.set(0, 0.18, -0.32);
+    g.add(dorsal, adipose);
+
+    const { wingL, wingR } = addPectoralFins(g, salmonMat, { x: 0.15, y: -0.07, z: 0.18, len: 0.22, width: 0.12 });
+    const tail = createTailPivot(g, 0, -0.49);
+    addForkedTail(tail, backMat, { len: 0.34, spread: 0.2, bladeW: 0.11 });
+    addFishEyes(g, 0.12, 0.055, 0.39, 0.04);
+
+    g.scale.setScalar(1.06);
+    return { group: g, wingL, wingR, tailMesh: tail };
+  },
+
+  // 24. 冰海天使 — Ethereal translucent ice-cyan sea angel with glowing rosy heart core, earlets & angel wings!
+  sea_angel() {
+    const g = new THREE.Group();
+    const iceMat = makeMat(0xb8fbff, {
+      roughness: 0.16,
+      transparent: true,
+      opacity: 0.56,
+      emissive: 0x48cae4,
+      emissiveIntensity: 0.65
+    });
+    const wingMat = makeMat(0xdbfdff, {
+      roughness: 0.18,
+      transparent: true,
+      opacity: 0.88,
+      emissive: 0x72efdd,
+      emissiveIntensity: 0.58,
+      side: THREE.DoubleSide
+    });
+    const heartMat = makeMat(0xff6b8b, { roughness: 0.2, emissive: 0xff4d6d, emissiveIntensity: 1.25 });
+
+    // Translucent ice teardrop body
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.21, 9, 7), iceMat);
+    body.scale.set(0.84, 0.84, 1.5);
+    g.add(body);
+
+    // Visible glowing rosy-coral heart core inside!
+    const heart = new THREE.Mesh(new THREE.OctahedronGeometry(0.11, 0), heartMat);
+    heart.position.set(0, 0.01, 0.04);
+    g.add(heart);
+
+    // Cute twin horn-like earlets (rhinophores) on head (+Z)
+    for (const sx of [-0.08, 0.08]) {
+      const ear = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.17, 5), iceMat);
+      ear.rotation.x = Math.PI * 0.4;
+      ear.rotation.z = Math.sign(sx) * -0.26;
+      ear.position.set(sx, 0.075, 0.32);
+      g.add(ear);
+    }
+
+    // Outstretched translucent angel wings (wingL/wingR flap gracefully!)
+    const wingL = new THREE.Group();
+    wingL.position.set(-0.14, 0.02, 0.06);
+    const wingR = new THREE.Group();
+    wingR.position.set(0.14, 0.02, 0.06);
+    for (const [piv, sx] of [[wingL, -1], [wingR, 1]]) {
+      const w = new THREE.Mesh(new THREE.CylinderGeometry(0.21, 0.16, 0.026, 7), wingMat);
+      w.scale.set(1.4, 1, 0.88);
+      w.position.set(sx * 0.23, 0, -0.02);
+      piv.add(w);
+    }
+    g.add(wingL, wingR);
+
+    // Crystalline tapering tail tip
+    const tail = createTailPivot(g, 0, -0.25);
+    const tip = new THREE.Mesh(new THREE.ConeGeometry(0.125, 0.4, 6), iceMat);
+    tip.rotation.x = -Math.PI * 0.5;
+    tip.position.set(0, 0, -0.19);
+    tail.add(tip);
+
+    g.scale.setScalar(0.92);
+    return { group: g, wingL, wingR, tailMesh: tail };
+  },
+
+  // 25. 翻車魚 — Tall flat vertical circular disc sunfish with giant top dorsal & bottom anal blades & scalloped rudder!
+  ocean_sunfish() {
+    const g = new THREE.Group();
+    const slateMat = makeMat(0x919fb3, { roughness: 0.52 });
+    const darkMat = makeMat(0x6e7c91, { roughness: 0.56 });
+    const paleMat = makeMat(0xdce3ed, { roughness: 0.5 });
+
+    // Tall flat vertical disc body
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.4, 10, 8), slateMat);
+    body.scale.set(0.32, 1.05, 1.02);
+    g.add(body);
+
+    const belly = new THREE.Mesh(new THREE.SphereGeometry(0.36, 9, 7), paleMat);
+    belly.scale.set(0.3, 0.58, 0.88);
+    belly.position.set(0, -0.17, 0.03);
+    g.add(belly);
+
+    // Enormous tall narrow dorsal blade (+Y) & matching bottom anal blade (-Y)!
+    const dorsal = new THREE.Mesh(new THREE.ConeGeometry(0.13, 0.56, 4), darkMat);
+    dorsal.scale.set(0.28, 1, 1.1);
+    dorsal.position.set(0, 0.58, -0.16);
+    dorsal.rotation.x = -0.14;
+
+    const anal = new THREE.Mesh(new THREE.ConeGeometry(0.13, 0.54, 4), darkMat);
+    anal.scale.set(0.28, 1, 1.1);
+    anal.rotation.x = Math.PI + 0.14;
+    anal.position.set(0, -0.56, -0.16);
+    g.add(dorsal, anal);
+
+    // Tiny surprised O-mouth
+    const mouth = new THREE.Mesh(new THREE.TorusGeometry(0.038, 0.015, 5, 8), darkMat);
+    mouth.position.set(0, -0.02, 0.41);
+    g.add(mouth);
+
+    // Small round fluttering side fins
+    const { wingL, wingR } = addPectoralFins(g, paleMat, { x: 0.13, y: -0.04, z: 0.1, len: 0.16, width: 0.12 });
+
+    // Scalloped vertical rudder-like clavus (no normal fish tail!)
+    const tail = createTailPivot(g, 0, -0.36);
+    for (const sy of [-0.18, 0, 0.18]) {
+      const lobe = new THREE.Mesh(new THREE.SphereGeometry(0.11, 6, 5), darkMat);
+      lobe.scale.set(0.35, 0.95, 0.9);
+      lobe.position.set(0, sy, -0.06);
+      tail.add(lobe);
+    }
+
+    addFishEyes(g, 0.115, 0.08, 0.25, 0.046);
+    g.scale.setScalar(1.06);
+    return { group: g, wingL, wingR, tailMesh: tail };
+  },
+
+  // 26. 鯨鯊 — Colossal gentle giant whale shark with wide blunt snout, starry white spots & tall shark fins!
+  whale_shark() {
+    const g = new THREE.Group();
+    const slateBlue = makeMat(0x355070, { roughness: 0.48 });
+    const darkBlue = makeMat(0x263d57, { roughness: 0.52 });
+    const whiteMat = makeMat(0xf1f6fa, { roughness: 0.45 });
+
+    // Massive broad torpedo body
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.36, 10, 8), slateBlue);
+    body.scale.set(0.88, 0.66, 2.05);
+    g.add(body);
+
+    // Wide flattened blunt whale-shark head (+Z)
+    const snout = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.2, 0.34), slateBlue);
+    snout.position.set(0, -0.01, 0.6);
+    g.add(snout);
+
+    const belly = new THREE.Mesh(new THREE.SphereGeometry(0.33, 9, 7), whiteMat);
+    belly.scale.set(0.84, 0.42, 1.9);
+    belly.position.set(0, -0.1, 0.05);
+    g.add(belly);
+
+    // Iconic checkerboard starry white spots across its broad back!
+    const spotGeo = new THREE.SphereGeometry(0.028, 5, 4);
+    for (const sz of [-0.36, -0.16, 0.04, 0.24, 0.42]) {
+      for (const sx of [-0.18, 0, 0.18]) {
+        if (Math.abs(sx) > 0.12 && sz < -0.25) continue;
+        const sp = new THREE.Mesh(spotGeo, whiteMat);
+        sp.scale.set(1, 0.38, 1);
+        sp.position.set(sx, 0.225 - Math.abs(sx) * 0.24 - Math.abs(sz) * 0.08, sz);
+        g.add(sp);
+      }
+    }
+
+    // Iconic tall shark dorsal fin + second dorsal fin
+    const d1 = new THREE.Mesh(new THREE.ConeGeometry(0.11, 0.38, 4), darkBlue);
+    d1.scale.set(0.32, 1, 1.25);
+    d1.position.set(0, 0.36, -0.04);
+    d1.rotation.x = -0.32;
+    const d2 = new THREE.Mesh(new THREE.ConeGeometry(0.055, 0.16, 4), darkBlue);
+    d2.scale.set(0.35, 1, 1.1);
+    d2.position.set(0, 0.2, -0.44);
+    d2.rotation.x = -0.35;
+    g.add(d1, d2);
+
+    // Huge sweeping shark pectoral fins
+    const { wingL, wingR } = addPectoralFins(g, darkBlue, { x: 0.26, y: -0.09, z: 0.2, len: 0.44, width: 0.2, sweep: 0.55, tilt: -0.2 });
+
+    // Tall asymmetrical shark caudal tail (upper lobe longer than lower lobe)
+    const tail = createTailPivot(g, 0, -0.66);
+    const upper = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.12, 0.5), darkBlue);
+    upper.position.set(0, 0.16, -0.22);
+    upper.rotation.x = 0.62;
+    const lower = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.1, 0.32), darkBlue);
+    lower.position.set(0, -0.1, -0.15);
+    lower.rotation.x = -0.58;
+    tail.add(upper, lower);
+
+    addFishEyes(g, 0.23, 0.01, 0.64, 0.036);
+    g.scale.setScalar(1.04);
+    return { group: g, wingL, wingR, tailMesh: tail };
+  },
+
+  // 27. 水晶水母 — Luminous faceted aquamarine crystal jellyfish with glowing violet core & trailing tentacles!
+  crystal_jelly() {
+    const g = new THREE.Group();
+    const bellMat = makeMat(0x72efdd, {
+      roughness: 0.16,
+      transparent: true,
+      opacity: 0.82,
+      emissive: 0x38b6c9,
+      emissiveIntensity: 0.72,
+      side: THREE.DoubleSide
+    });
+    const ribMat = makeMat(0xe0fffb, {
+      roughness: 0.18,
+      emissive: 0x80ffdb,
+      emissiveIntensity: 0.8
+    });
+    const coreMat = makeMat(0xc8b6ff, {
+      roughness: 0.2,
+      emissive: 0x9d4edd,
+      emissiveIntensity: 0.95
+    });
+    const tentMat = makeMat(0x80ffdb, {
+      roughness: 0.22,
+      transparent: true,
+      opacity: 0.88,
+      emissive: 0x56cfe1,
+      emissiveIntensity: 0.6
+    });
+
+    // Translucent crystal umbrella dome leading forward along +Z swim axis!
+    const dome = new THREE.Mesh(new THREE.SphereGeometry(0.32, 8, 6, 0, Math.PI * 2, 0, Math.PI * 0.56), bellMat);
+    dome.rotation.x = Math.PI * 0.5;
+    dome.position.set(0, 0, 0.06);
+    g.add(dome);
+
+    // Glowing scalloped crystal rim ring around bell edge
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.31, 0.03, 5, 8), ribMat);
+    rim.position.set(0, 0, 0.02);
+    g.add(rim);
+
+    // Glowing lavender-crystal inner star core
+    const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.145, 0), coreMat);
+    core.position.set(0, 0, 0.12);
+    g.add(core);
+
+    // Pulsing bell skirt lobes (wingL/wingR)
+    const wingL = new THREE.Group();
+    wingL.position.set(-0.22, 0, 0.02);
+    const wingR = new THREE.Group();
+    wingR.position.set(0.22, 0, 0.02);
+    for (const [piv, sx] of [[wingL, -1], [wingR, 1]]) {
+      const skirt = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.2, 0.12), bellMat);
+      skirt.position.set(sx * 0.04, 0, -0.05);
+      piv.add(skirt);
+    }
+    g.add(wingL, wingR);
+
+    // Flowing bundle of 6 translucent cyan tentacles + 2 violet oral arms on tailMesh!
+    const tail = createTailPivot(g, 0, 0.02);
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2;
+      const t = new THREE.Mesh(new THREE.CylinderGeometry(0.013, 0.024, 0.62, 5), tentMat);
+      t.rotation.x = Math.PI * 0.5;
+      t.position.set(Math.cos(a) * 0.15, Math.sin(a) * 0.15, -0.32);
+      tail.add(t);
+    }
+    for (const sx of [-0.05, 0.05]) {
+      const oral = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.026, 0.46), coreMat);
+      oral.position.set(sx, 0, -0.24);
+      tail.add(oral);
+    }
+
+    g.scale.setScalar(0.95);
+    return { group: g, wingL, wingR, tailMesh: tail };
+  },
+
+  // 28. 黑鮪魚 — Thick powerhouse torpedo bluefin tuna with midnight-navy back, bright yellow finlets & crescent tail!
+  blue_tuna() {
+    const g = new THREE.Group();
+    const navyMat = makeMat(0x1f3a52, { roughness: 0.3, metalness: 0.35 });
+    const silverMat = makeMat(0xdde8f0, { roughness: 0.24, metalness: 0.45 });
+    const yellowMat = makeMat(0xffd447, { roughness: 0.3, emissive: 0x7a5700, emissiveIntensity: 0.25 });
+
+    // Muscular chunky torpedo fuselage
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.32, 10, 8), silverMat);
+    body.scale.set(0.68, 0.88, 1.82);
+    g.add(body);
+
+    const upper = new THREE.Mesh(new THREE.SphereGeometry(0.31, 9, 7), navyMat);
+    upper.scale.set(0.66, 0.58, 1.76);
+    upper.position.set(0, 0.11, 0.01);
+    g.add(upper);
+
+    // Tall swept dorsal fin
+    const d1 = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.26, 4), navyMat);
+    d1.scale.set(0.35, 1, 1.2);
+    d1.position.set(0, 0.34, 0.06);
+    d1.rotation.x = -0.35;
+    g.add(d1);
+
+    // Iconic rows of bright golden-yellow dorsal & ventral finlets near tail stalk!
+    for (let i = 0; i < 4; i++) {
+      const fTop = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.115, 4), yellowMat);
+      fTop.scale.set(0.45, 1, 1);
+      fTop.position.set(0, 0.25 - i * 0.036, -0.15 - i * 0.095);
+      const fBot = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.115, 4), yellowMat);
+      fBot.scale.set(0.45, 1, 1);
+      fBot.rotation.x = Math.PI;
+      fBot.position.set(0, -0.25 + i * 0.036, -0.15 - i * 0.095);
+      g.add(fTop, fBot);
+    }
+
+    const { wingL, wingR } = addPectoralFins(g, navyMat, { x: 0.2, y: -0.05, z: 0.16, len: 0.28, width: 0.11, sweep: 0.72 });
+    const tail = createTailPivot(g, 0, -0.54);
+    addForkedTail(tail, navyMat, { len: 0.42, spread: 0.26, bladeW: 0.085 });
+    addFishEyes(g, 0.16, 0.055, 0.42, 0.044);
+
+    g.scale.setScalar(1.08);
+    return { group: g, wingL, wingR, tailMesh: tail };
+  },
+
+  // 29. 皇帶魚 — Spectacular elongated silver ribbon oarfish with towering crimson head plumes & fiery red dorsal crest!
+  oarfish() {
+    const g = new THREE.Group();
+    const silverMat = makeMat(0xe6f0f7, { roughness: 0.2, metalness: 0.52 });
+    const crimsonMat = makeMat(0xe63946, { roughness: 0.38, emissive: 0x6b0f17, emissiveIntensity: 0.25 });
+    const goldEye = makeMat(0xffd166, { roughness: 0.25 });
+
+    // Sinuous silver-ribbon front body segments + continuous fiery crimson dorsal fin
+    const frontPts = [
+      { z: 0.48, x: 0.0, h: 0.18 },
+      { z: 0.24, x: 0.05, h: 0.17 },
+      { z: 0.0, x: 0.02, h: 0.16 },
+      { z: -0.24, x: -0.05, h: 0.15 }
+    ];
+    for (const pt of frontPts) {
+      const seg = new THREE.Mesh(new THREE.BoxGeometry(0.068, pt.h, 0.28), silverMat);
+      seg.position.set(pt.x, 0, pt.z);
+      const crest = new THREE.Mesh(new THREE.BoxGeometry(0.024, 0.13, 0.27), crimsonMat);
+      crest.position.set(pt.x, pt.h * 0.5 + 0.06, pt.z);
+      g.add(seg, crest);
+    }
+
+    // Iconic tall vibrant crimson-red crown plumes sprouting from head!
+    for (let i = 0; i < 3; i++) {
+      const plume = new THREE.Mesh(new THREE.ConeGeometry(0.028, 0.34 - i * 0.04, 4), crimsonMat);
+      plume.position.set(0, 0.24, 0.56 - i * 0.065);
+      plume.rotation.x = -0.35 - i * 0.14;
+      g.add(plume);
+    }
+
+    // Long delicate red pelvic oar-streamers (wingL/wingR)
+    const { wingL, wingR } = addPectoralFins(g, crimsonMat, { x: 0.045, y: -0.09, z: 0.44, len: 0.28, width: 0.036, sweep: 0.78, tilt: -0.68 });
+
+    // Long undulating trailing crimson-crested ribbon tail!
+    const tail = createTailPivot(g, 0, -0.34);
+    const tailPts = [
+      { z: -0.14, x: -0.04, h: 0.135 },
+      { z: -0.38, x: 0.03, h: 0.11 },
+      { z: -0.62, x: 0.05, h: 0.085 },
+      { z: -0.84, x: -0.01, h: 0.058 }
+    ];
+    for (const tp of tailPts) {
+      const seg = new THREE.Mesh(new THREE.BoxGeometry(0.056, tp.h, 0.26), silverMat);
+      seg.position.set(tp.x, 0, tp.z);
+      const crest = new THREE.Mesh(new THREE.BoxGeometry(0.02, tp.h * 0.85, 0.26), crimsonMat);
+      crest.position.set(tp.x, tp.h * 0.5 + tp.h * 0.38, tp.z);
+      tail.add(seg, crest);
+    }
+
+    addFishEyes(g, 0.044, 0.03, 0.54, 0.036, goldEye);
+    g.scale.setScalar(1.0);
+    return { group: g, wingL, wingR, tailMesh: tail };
+  },
+
+  // 30. 腔棘魚 — Prehistoric steel-blue living fossil with misty white blotches, lobed limb-fins & 3-lobed broom tail!
+  coelacanth() {
+    const g = new THREE.Group();
+    const steelMat = makeMat(0x427596, { roughness: 0.5 });
+    const darkArmor = makeMat(0x2d536e, { roughness: 0.56 });
+    const blotchMat = makeMat(0xd6ebf5, { roughness: 0.45 });
+    const lobeMat = makeMat(0x5a90b3, { roughness: 0.48 });
+
+    // Heavy armored prehistoric torso
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.32, 9, 7), steelMat);
+    body.scale.set(0.64, 0.88, 1.72);
+    g.add(body);
+
+    // Armored bony head/gill plates
+    const gill = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.32, 0.16), darkArmor);
+    gill.position.set(0, 0.01, 0.24);
+    g.add(gill);
+
+    // Iconic misty-white fossil blotches across flanks
+    for (const [bx, by, bz] of [[-0.18, 0.1, 0.05], [0.18, 0.1, 0.05], [-0.17, -0.05, -0.12], [0.17, -0.05, -0.12], [-0.15, 0.08, -0.26], [0.15, 0.08, -0.26]]) {
+      const blotch = new THREE.Mesh(new THREE.SphereGeometry(0.045, 5, 4), blotchMat);
+      blotch.scale.set(0.45, 1, 1.15);
+      blotch.position.set(bx, by, bz);
+      g.add(blotch);
+    }
+
+    // Spiky first dorsal fan + fleshy-stalked second dorsal, pelvic & anal lobed fins!
+    const d1 = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.24, 5), darkArmor);
+    d1.scale.set(0.35, 1, 1.2);
+    d1.position.set(0, 0.33, 0.04);
+    d1.rotation.x = -0.35;
+    g.add(d1);
+
+    const lobedFins = [
+      { x: 0, y: 0.28, z: -0.26, rx: -0.55 },
+      { x: 0, y: -0.28, z: -0.26, rx: Math.PI + 0.55 },
+      { x: -0.12, y: -0.24, z: -0.04, rx: Math.PI + 0.45 },
+      { x: 0.12, y: -0.24, z: -0.04, rx: Math.PI + 0.45 }
+    ];
+    for (const lf of lobedFins) {
+      const limb = new THREE.Mesh(new THREE.CylinderGeometry(0.042, 0.068, 0.2, 6), lobeMat);
+      limb.scale.set(0.55, 1, 1.15);
+      limb.position.set(lf.x, lf.y, lf.z);
+      limb.rotation.x = lf.rx;
+      g.add(limb);
+    }
+
+    // Lobed pectoral limb-fins (wingL/wingR)
+    const { wingL, wingR } = addPectoralFins(g, lobeMat, { x: 0.19, y: -0.08, z: 0.14, len: 0.26, width: 0.16, sweep: 0.35 });
+
+    // Unmistakable 3-lobed (trilobed) ancient diphycercal broom tail!
+    const tail = createTailPivot(g, 0, -0.49);
+    addForkedTail(tail, darkArmor, { len: 0.34, spread: 0.22, bladeW: 0.12 });
+    const centerLobe = new THREE.Mesh(new THREE.ConeGeometry(0.068, 0.28, 5), lobeMat);
+    centerLobe.rotation.x = -Math.PI * 0.5;
+    centerLobe.scale.set(0.45, 1, 0.9);
+    centerLobe.position.set(0, 0, -0.34);
+    tail.add(centerLobe);
+
+    addFishEyes(g, 0.15, 0.06, 0.38, 0.048, blotchMat);
+    g.scale.setScalar(1.1);
+    return { group: g, wingL, wingR, tailMesh: tail };
+  }
+};
+
 /**
- * Builds a unique charming low-poly 3D model for every fish, insect (24 species), and reptile (12 species).
- * Returns { group, wingL, wingR, tailMesh } for smooth idle/flight/tail animations.
+ * Builds a unique charming low-poly 3D model for every fish (30 species), insect (24 species), and reptile (12 species).
+ * Returns { group, wingL, wingR, tailMesh } for smooth idle/swim/flight/tail animations.
  */
 export function buildCreatureModel(creature) {
   if (!creature) {
     return { group: new THREE.Group(), wingL: null, wingR: null, tailMesh: null };
   }
 
-  // Dedicated unique model for every single insect & reptile species!
+  // Dedicated unique model for every single fish, insect & reptile species!
+  if (FISH_BUILDERS[creature.id]) {
+    return FISH_BUILDERS[creature.id](creature);
+  }
   if (BUG_BUILDERS[creature.id]) {
     return BUG_BUILDERS[creature.id](creature);
   }
@@ -2039,7 +3687,7 @@ export function buildCreatureModel(creature) {
     return REPTILE_BUILDERS[creature.id](creature);
   }
 
-  // ==================== FISH (for Museum Aquariums) ====================
+  // Safe generic fallback if an unknown creature id is ever added
   const g = new THREE.Group();
   const col = creature.color || 0xffd166;
   const mainMat = makeMat(col, {
@@ -2048,32 +3696,6 @@ export function buildCreatureModel(creature) {
     emissive: creature.glow ? col : 0x000000,
     emissiveIntensity: creature.glow ? 0.9 : 0
   });
-  const darkMat = makeMat(0x1d1916);
-
-  if (creature.type === 'fish') {
-    const scale = Math.max(0.55, Math.min(1.45, (creature.shadowSize || 1) * 0.78));
-    const body = new THREE.Mesh(new THREE.SphereGeometry(0.32, 8, 6), mainMat);
-    body.scale.set(0.55, 0.78, 1.45);
-    g.add(body);
-
-    const tail = new THREE.Mesh(new THREE.ConeGeometry(0.24, 0.42, 4), mainMat);
-    tail.rotation.x = Math.PI / 2;
-    tail.scale.set(0.25, 1, 1);
-    tail.position.z = -0.56;
-    g.add(tail);
-
-    const dorsal = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.32, 4), mainMat);
-    dorsal.position.set(0, 0.26, -0.05);
-    dorsal.rotation.x = -0.35;
-    g.add(dorsal);
-
-    addEyes(g, 0.14, 0.07, 0.28, 0.045, darkMat);
-
-    g.scale.setScalar(scale);
-    return { group: g, wingL: null, wingR: null, tailMesh: tail };
-  }
-
-  // Safe generic fallback if an unknown creature id is ever added
   const fallback = new THREE.Mesh(new THREE.DodecahedronGeometry(0.24, 0), mainMat);
   fallback.position.y = 0.2;
   g.add(fallback);

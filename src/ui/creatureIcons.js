@@ -554,6 +554,464 @@ const CREATURE_SVG_BODY = {
     <rect x="34" y="26" width="6" height="3.2" rx="1" fill="#8f806e" transform="rotate(-6 34 26)"/>
     <path d="M57 28 L62 29 M60 28.5 L62.5 26.8 M60 28.5 L62.5 30.8" fill="none" stroke="#d95f6e" stroke-width="1.6" stroke-linecap="round"/>
     <circle cx="51" cy="25" r="2" fill="#1a1510"/>
+  `,
+
+  // ==================== FISH (30 UNIQUE ILLUSTRATIONS) ====================
+
+  // 1. 海鱸魚 — Sleek olive-teal sea bass with spiky front dorsal, pale silver belly & dark back speckles
+  sea_bass: `
+    <path d="M18 33 L7 23 C9 29, 10 33, 7 43 L18 35 Z" fill="#528f87" ${S}/>
+    <path d="M26 24 L29 15 L33 21 L37 16 L41 23 Z" fill="#467d76" ${S_THIN}/>
+    <path d="M19 26 C21 21, 25 21, 27 24 Z" fill="#63a49b" ${S_THIN}/>
+    <path d="M22 40 L27 46 L31 41 Z" fill="#7bb7ae" ${S_THIN}/>
+    <path d="M17 34 C22 22, 39 19, 55 29 C58 31, 58 34, 54 37 C42 45, 24 44, 17 34 Z" fill="#68a89f" ${S}/>
+    <path d="M20 35 C27 41, 42 42, 53 35 C44 37, 29 37, 20 35 Z" fill="#d9eeec"/>
+    <path d="M44 26 C42 30, 42 35, 45 38" fill="none" stroke="#2e2118" stroke-width="1.5" stroke-linecap="round"/>
+    <path d="M38 36 L32 41 L37 40 Z" fill="#8bc7be" ${S_THIN}/>
+    <circle cx="30" cy="27" r="1.4" fill="#2e5954"/>
+    <circle cx="36" cy="25" r="1.4" fill="#2e5954"/>
+    <circle cx="41" cy="27" r="1.3" fill="#2e5954"/>
+    <circle cx="25" cy="29" r="1.3" fill="#2e5954"/>
+    <circle cx="49" cy="30" r="2.7" fill="#fffdf5" ${S_THIN}/>
+    <circle cx="49.7" cy="29.8" r="1.4" fill="#1b1816"/>
+  `,
+
+  // 2. 竹筴魚 — Streamlined silver-blue mackerel with signature golden scute stripe & sharp forked yellow tail
+  horse_mackerel: `
+    <path d="M15 32 L5 21 L11 32 L5 43 L15 34 Z" fill="#f0c954" ${S}/>
+    <path d="M31 24 L37 16 L41 25 Z" fill="#639ec2" ${S_THIN}/>
+    <path d="M21 26 L29 22 L30 26 Z" fill="#7ab3d4" ${S_THIN}/>
+    <path d="M21 38 L29 42 L31 38 Z" fill="#9bc7e0" ${S_THIN}/>
+    <path d="M14 33 C20 24, 42 21, 58 31 C59 32.5, 58 34.5, 55 36 C41 42, 21 41, 14 33 Z" fill="#84bcd9" ${S}/>
+    <path d="M17 34 C25 39, 43 39, 55 34 C44 35, 27 35, 17 34 Z" fill="#edf7fc"/>
+    <path d="M16 33 L29 33 L35 30 L45 30" fill="none" stroke="#f2ca52" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M40 35 L33 39 L39 38 Z" fill="#c7e4f2" ${S_THIN}/>
+    <circle cx="51" cy="30.5" r="2.9" fill="#ffffff" ${S_THIN}/>
+    <circle cx="51.7" cy="30.5" r="1.5" fill="#18181a"/>
+  `,
+
+  // 3. 鯽魚 — Plump high-backed golden-bronze pond crucian carp with gentle scale arcs
+  crucian_carp: `
+    <path d="M17 33 L7 24 C10 31, 10 36, 7 44 L17 36 Z" fill="#a89052" ${S}/>
+    <path d="M22 23 C29 14, 40 15, 44 23 Z" fill="#947c42" ${S}/>
+    <path d="M24 44 L29 50 L36 44 Z" fill="#d4a857" ${S_THIN}/>
+    <path d="M16 34 C20 19, 42 17, 55 31 C57 34, 56 37, 53 39 C42 48, 22 47, 16 34 Z" fill="#c7ae69" ${S}/>
+    <path d="M19 37 C27 45, 43 45, 52 38 C43 41, 28 41, 19 37 Z" fill="#f0e1b0"/>
+    <path d="M31 28 Q34 31 31 34 M37 27 Q40 30 37 33 M26 30 Q29 33 26 36" fill="none" stroke="#877038" stroke-width="1.4" stroke-linecap="round"/>
+    <path d="M44 26 C42 31, 42 36, 45 40" fill="none" stroke="#54421d" stroke-width="1.5" stroke-linecap="round"/>
+    <path d="M40 39 L34 45 L41 44 Z" fill="#dfb765" ${S_THIN}/>
+    <circle cx="49" cy="31" r="2.8" fill="#fff9e6" ${S_THIN}/>
+    <circle cx="49.7" cy="31" r="1.4" fill="#1d1812"/>
+  `,
+
+  // 4. 香魚 — Slender emerald-mint sweetfish with iconic golden shoulder oval patch & tiny adipose fin
+  sweetfish: `
+    <path d="M14 32 L5 23 L10 33 L5 43 L14 34 Z" fill="#82c478" ${S}/>
+    <path d="M31 24 L37 16 L41 25 Z" fill="#72b568" ${S_THIN}/>
+    <path d="M19 27 L22 23 L24 27 Z" fill="#99d98c" ${S_THIN}/>
+    <path d="M23 39 L29 44 L33 39 Z" fill="#c7ebbc" ${S_THIN}/>
+    <path d="M13 33 C19 23, 42 21, 58 31 C59 32.5, 58 34.5, 55 36 C41 43, 21 42, 13 33 Z" fill="#92d485" ${S}/>
+    <path d="M16 34 C25 40, 43 40, 55 35 C43 36, 26 36, 16 34 Z" fill="#eef9eb"/>
+    <ellipse cx="42" cy="31.5" rx="3.4" ry="2.2" fill="#ffe14d" stroke="#c99714" stroke-width="1"/>
+    <path d="M46 27 C44.5 30.5, 44.5 34.5, 46.5 37" fill="none" stroke="#3c6e37" stroke-width="1.4" stroke-linecap="round"/>
+    <circle cx="51.5" cy="31" r="2.5" fill="#fffdf6" ${S_THIN}/>
+    <circle cx="52.2" cy="31" r="1.3" fill="#191d18"/>
+  `,
+
+  // 5. 紅鯛魚 — Vibrant vermilion-red snapper with broad proud silhouette, blue flank flecks & golden eye
+  red_snapper: `
+    <path d="M17 33 L6 21 C10 29, 10 37, 6 45 L17 36 Z" fill="#d94e34" ${S}/>
+    <path d="M21 24 L25 14 L30 19 L34 13 L39 18 L43 15 L46 22 Z" fill="#e75f42" ${S_THIN}/>
+    <path d="M23 44 L29 51 L35 45 Z" fill="#f07e62" ${S_THIN}/>
+    <path d="M16 34 C20 18, 43 15, 56 29 C58 32, 57 36, 54 39 C43 49, 22 48, 16 34 Z" fill="#eb684b" ${S}/>
+    <path d="M20 38 C28 46, 44 46, 53 38 C43 41, 29 41, 20 38 Z" fill="#ffd9cf"/>
+    <circle cx="31" cy="25" r="1.4" fill="#7be0ff"/>
+    <circle cx="37" cy="23" r="1.4" fill="#7be0ff"/>
+    <circle cx="42" cy="25" r="1.3" fill="#7be0ff"/>
+    <circle cx="26" cy="28" r="1.2" fill="#7be0ff"/>
+    <path d="M44 24 C42 30, 42 36, 45 41" fill="none" stroke="#8c2616" stroke-width="1.5" stroke-linecap="round"/>
+    <path d="M40 37 L32 43 L40 43 Z" fill="#f58b70" ${S_THIN}/>
+    <circle cx="50" cy="29.5" r="3.1" fill="#ffd65a" ${S_THIN}/>
+    <circle cx="50.7" cy="29.5" r="1.5" fill="#1c1412"/>
+  `,
+
+  // 6. 海灣魷魚 — Pearlescent-cream bay squid with diamond mantle fins, big eyes & trailing tentacles
+  squid: `
+    <path d="M41 12 L56 8 L52 23 Z" fill="#f0c8ba" ${S}/>
+    <path d="M28 36 C21 43, 14 48, 9 54 M30 38 C23 47, 17 53, 15 58 M34 40 C29 48, 25 54, 24 59 M37 39 C35 47, 34 53, 36 57" fill="none" stroke="#f0c8ba" stroke-width="3.2" stroke-linecap="round"/>
+    <path d="M28 36 C21 43, 14 48, 9 54 M30 38 C23 47, 17 53, 15 58 M34 40 C29 48, 25 54, 24 59 M37 39 C35 47, 34 53, 36 57" fill="none" ${S_THIN}/>
+    <circle cx="9" cy="54" r="2.2" fill="#e8a598" ${S_THIN}/>
+    <circle cx="15" cy="58" r="2.2" fill="#e8a598" ${S_THIN}/>
+    <path d="M31 25 C37 15, 47 10, 54 10 C54 17, 49 27, 39 33 Z" fill="#faeae0" ${S}/>
+    <ellipse cx="44" cy="20" rx="2.5" ry="6" fill="#ffffff" opacity="0.65" transform="rotate(42 44 20)"/>
+    <circle cx="43" cy="22" r="1.2" fill="#e08f7b"/>
+    <circle cx="47" cy="17" r="1.1" fill="#e08f7b"/>
+    <circle cx="32" cy="33" r="6.5" fill="#f7dfd2" ${S}/>
+    <circle cx="29.5" cy="31.5" r="2.6" fill="#1e1b22"/>
+    <circle cx="35" cy="35" r="2.4" fill="#1e1b22"/>
+    <circle cx="30.2" cy="30.7" r="0.9" fill="#ffffff"/>
+    <circle cx="35.6" cy="34.2" r="0.8" fill="#ffffff"/>
+  `,
+
+  // 7. 雨滴鬥魚 — Jewel-cyan raindrop betta with grand flowing veil fins & iridescent aqua-violet shimmer
+  rain_frogfish: `
+    <circle class="svg-glow" cx="30" cy="34" r="21" fill="#56cfe1" opacity="0.22"/>
+    <path d="M27 29 C19 11, 7 15, 8 28 C5 34, 6 43, 13 47 C19 52, 27 48, 29 38 Z" fill="#48bfe3" ${S}/>
+    <path d="M27 26 C28 13, 39 10, 44 19 C43 23, 38 26, 33 28 Z" fill="#64dfdf" ${S}/>
+    <path d="M26 39 C26 52, 39 56, 46 47 C45 43, 39 40, 34 38 Z" fill="#7400b8" opacity="0.72"/>
+    <path d="M26 39 C26 52, 39 56, 46 47 C45 43, 39 40, 34 38 Z" fill="none" ${S}/>
+    <path d="M12 24 C17 27, 22 30, 26 32 M10 34 C16 34, 22 34, 26 34 M14 43 C19 40, 23 38, 26 36" fill="none" stroke="#80ffdb" stroke-width="1.5" stroke-linecap="round"/>
+    <path d="M25 33 C30 24, 44 23, 55 31 C56 33, 55 36, 52 38 C43 43, 30 42, 25 33 Z" fill="#32b5d4" ${S}/>
+    <path d="M40 36 L34 45 L41 42 Z" fill="#80ffdb" ${S_THIN}/>
+    <circle cx="49" cy="31.5" r="2.5" fill="#fffdf5" ${S_THIN}/>
+    <circle cx="49.7" cy="31.5" r="1.3" fill="#181826"/>
+    <path d="M56 17 C56 17, 59 21, 59 23 A3 3 0 1 1 53 23 C53 21, 56 17, 56 17 Z" fill="#80ffdb" ${S_THIN}/>
+  `,
+
+  // 8. 小丑魚 — Bright tangerine-orange clownfish with 3 crisp black-edged white bands & rounded fins
+  clownfish: `
+    <path d="M17 32 C10 24, 6 26, 7 33 C6 40, 10 42, 17 35 Z" fill="#ff7b29" ${S}/>
+    <path d="M9 27 C7 31, 7 35, 9 39" fill="none" stroke="#1c1816" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="M22 24 C23 16, 31 16, 33 23 C36 16, 44 17, 45 24 Z" fill="#ff7b29" ${S}/>
+    <path d="M24 41 C25 47, 32 48, 35 42 Z" fill="#ff7b29" ${S_THIN}/>
+    <path d="M16 33 C20 20, 42 19, 55 29 C57 32, 57 35, 54 38 C43 46, 22 45, 16 33 Z" fill="#ff7b29" ${S}/>
+    <path d="M45 23 C43 29, 43 37, 45 42 L49 40 C47 36, 47 29, 49 25 Z" fill="#ffffff" stroke="#1c1816" stroke-width="1.6"/>
+    <path d="M31 22 C29 29, 29 37, 31 44 L36 44 C34 38, 35 35, 38 33 C35 31, 34 27, 36 22 Z" fill="#ffffff" stroke="#1c1816" stroke-width="1.6"/>
+    <path d="M20 27 C19 31, 19 35, 20 39 L23 41 C22 36, 22 30, 23 25 Z" fill="#ffffff" stroke="#1c1816" stroke-width="1.5"/>
+    <path d="M41 35 C36 37, 35 42, 41 42 C44 42, 45 38, 41 35 Z" fill="#ff7b29" stroke="#1c1816" stroke-width="1.7"/>
+    <circle cx="51" cy="30.5" r="2.6" fill="#fffdf5" ${S_THIN}/>
+    <circle cx="51.7" cy="30.5" r="1.3" fill="#181512"/>
+  `,
+
+  // 9. 藍倒吊 — Vibrant sapphire blue tang with iconic black palette sweep & bright lemon-yellow wedge tail
+  blue_tang: `
+    <path d="M18 33 L6 23 L8 43 L18 35 Z" fill="#ffe135" ${S}/>
+    <path d="M6 23 L18 31 M8 43 L18 35" stroke="#1b1c20" stroke-width="2.6" stroke-linecap="round"/>
+    <path d="M21 24 C29 15, 42 15, 48 22 Z" fill="#1565c0" ${S_THIN}/>
+    <path d="M22 42 C30 49, 42 49, 47 43 Z" fill="#1565c0" ${S_THIN}/>
+    <path d="M17 33 C20 18, 43 16, 56 29 C58 32, 57 36, 54 39 C43 48, 22 48, 17 33 Z" fill="#1d70b8" ${S}/>
+    <path d="M18 32 C24 22, 38 20, 49 27 L49 30 C41 25, 31 26, 28 32 C31 35, 36 35, 40 32 C37 38, 26 39, 18 34 Z" fill="#1b1c20"/>
+    <path d="M42 36 L34 41 L40 42 Z" fill="#ffe135" ${S_THIN}/>
+    <circle cx="50" cy="29.5" r="2.7" fill="#fffdf5" ${S_THIN}/>
+    <circle cx="50.7" cy="29.5" r="1.4" fill="#16161a"/>
+  `,
+
+  // 10. 刺河豚 — Round inflated golden spiny pufferfish with bristling quills, big goofy eyes & puckered mouth
+  pufferfish: `
+    <path d="M32 9 L32 15 M20 12 L23 18 M44 12 L41 18 M11 22 L17 25 M53 22 L47 25 M9 34 L15 34 M55 34 L49 34 M12 46 L18 43 M52 46 L46 43 M22 54 L25 48 M42 54 L39 48 M32 56 L32 50" stroke="#2e2118" stroke-width="3" stroke-linecap="round"/>
+    <path d="M32 10 L32 15 M20 13 L23 18 M44 13 L41 18 M12 22 L17 25 M52 22 L47 25 M10 34 L15 34 M54 34 L49 34 M13 45 L18 43 M51 45 L46 43 M22 53 L25 48 M42 53 L39 48 M32 55 L32 50" stroke="#fff2c2" stroke-width="1.5" stroke-linecap="round"/>
+    <path d="M12 33 L6 28 L6 39 L12 35 Z" fill="#e6be4c" ${S_THIN}/>
+    <circle cx="33" cy="33" r="18.5" fill="#f4d35e" ${S}/>
+    <path d="M16 37 C20 48, 45 48, 50 37 C43 42, 23 42, 16 37 Z" fill="#fff8de"/>
+    <circle cx="24" cy="24" r="2.2" fill="#b88e2e" opacity="0.65"/>
+    <circle cx="34" cy="20" r="2.5" fill="#b88e2e" opacity="0.65"/>
+    <circle cx="42" cy="24" r="2" fill="#b88e2e" opacity="0.65"/>
+    <circle cx="29" cy="29" r="1.8" fill="#b88e2e" opacity="0.55"/>
+    <ellipse cx="34" cy="36" rx="4.5" ry="3" fill="#ffe794" ${S_THIN}/>
+    <circle cx="44" cy="29" r="4.2" fill="#ffffff" ${S_THIN}/>
+    <circle cx="45" cy="29" r="2" fill="#1b1815"/>
+    <circle cx="45.8" cy="28.2" r="0.7" fill="#ffffff"/>
+    <ellipse cx="51" cy="35" rx="2.4" ry="1.8" fill="#e87a64" ${S_THIN}/>
+  `,
+
+  // 11. 網紋裸胸鱔 — Sinuous S-curved olive honeycomb moray eel with dorsal crest & toothy open mouth
+  moray_eel: `
+    <path d="M12 46 C10 34, 21 30, 31 35 C41 40, 49 34, 46 22 C44 15, 36 14, 30 17" fill="none" stroke="#a6c44b" stroke-width="12.5" stroke-linecap="round"/>
+    <path d="M12 46 C10 34, 21 30, 31 35 C41 40, 49 34, 46 22 C44 15, 36 14, 30 17" fill="none" stroke="#2e2118" stroke-width="11" stroke-linecap="round"/>
+    <path d="M12 46 C10 34, 21 30, 31 35 C41 40, 49 34, 46 22 C44 15, 36 14, 30 17" fill="none" stroke="#6c8c3f" stroke-width="7.8" stroke-linecap="round"/>
+    <path d="M12 48 C15 53, 25 56, 38 54" fill="none" stroke="#2e2118" stroke-width="7.5" stroke-linecap="round"/>
+    <path d="M12 48 C15 53, 25 56, 38 54" fill="none" stroke="#6c8c3f" stroke-width="4.5" stroke-linecap="round"/>
+    <circle cx="15" cy="40" r="1.6" fill="#31421b"/>
+    <circle cx="24" cy="34" r="1.7" fill="#31421b"/>
+    <circle cx="35" cy="37" r="1.7" fill="#31421b"/>
+    <circle cx="45" cy="31" r="1.7" fill="#31421b"/>
+    <circle cx="44" cy="21" r="1.6" fill="#31421b"/>
+    <path d="M32 13 L18 14 L23 19 L17 24 L32 23 Z" fill="#6c8c3f" ${S}/>
+    <path d="M21 16 L22 18.5 M25 16 L26 18.5 M21 22 L22 20 M25 22 L26 20" stroke="#ffffff" stroke-width="1.3" stroke-linecap="round"/>
+    <circle cx="30" cy="16.5" r="2.2" fill="#ffd94a" ${S_THIN}/>
+    <circle cx="29.5" cy="16.5" r="1" fill="#181512"/>
+  `,
+
+  // 12. 蘇眉魚 — Majestic turquoise Napoleon wrasse with unmistakable bulging forehead crown & blue cheek stripes
+  napoleonfish: `
+    <path d="M16 33 L6 23 C8 30, 8 38, 6 45 L16 37 Z" fill="#21a398" ${S}/>
+    <path d="M20 25 C28 19, 39 19, 43 24 Z" fill="#1c8f85" ${S_THIN}/>
+    <path d="M21 43 C29 48, 39 48, 43 43 Z" fill="#1c8f85" ${S_THIN}/>
+    <path d="M15 34 C18 22, 33 19, 44 19 C49 11, 56 13, 56 23 C58 28, 59 34, 55 38 C53 40, 49 41, 46 43 C35 48, 20 46, 15 34 Z" fill="#2ec4b6" ${S}/>
+    <path d="M25 24 L25 41 M31 23 L31 42 M37 24 L37 42" stroke="#18877d" stroke-width="2.2" stroke-linecap="round" opacity="0.65"/>
+    <path d="M44 29 Q48 26 52 28 M43 34 Q48 32 53 34 M45 38 Q49 36 52 38" fill="none" stroke="#9bf6ff" stroke-width="1.6" stroke-linecap="round"/>
+    <ellipse cx="55.5" cy="36" rx="2.6" ry="2.2" fill="#7be8de" ${S_THIN}/>
+    <path d="M38 37 L31 42 L38 43 Z" fill="#4ad9cc" ${S_THIN}/>
+    <circle cx="49" cy="24.5" r="2.6" fill="#fffdf5" ${S_THIN}/>
+    <circle cx="49.7" cy="24.5" r="1.3" fill="#161b1c"/>
+  `,
+
+  // 13. 鬼蝠魟 — Dramatic diamond-winged ocean manta ray with white shoulder patches, head horns & whip tail
+  manta_ray: `
+    <path d="M32 45 C32 52, 34 56, 38 60" fill="none" stroke="#223142" stroke-width="2.8" stroke-linecap="round"/>
+    <path d="M32 14 L57 29 C50 36, 41 42, 32 47 C23 42, 14 36, 7 29 Z" fill="#2b3d52" ${S}/>
+    <path d="M25 18 C22 12, 23 7, 27 8 C28 11, 28 14, 29 17 Z" fill="#2b3d52" ${S}/>
+    <path d="M39 18 C42 12, 41 7, 37 8 C36 11, 36 14, 35 17 Z" fill="#2b3d52" ${S}/>
+    <path d="M20 26 L29 22 L28 31 Z" fill="#eaf2f8" opacity="0.9"/>
+    <path d="M44 26 L35 22 L36 31 Z" fill="#eaf2f8" opacity="0.9"/>
+    <path d="M26 35 L32 38 L38 35" fill="none" stroke="#45607d" stroke-width="1.6" stroke-linecap="round"/>
+    <circle cx="24" cy="17.5" r="1.6" fill="#eef6fc"/>
+    <circle cx="40" cy="17.5" r="1.6" fill="#eef6fc"/>
+  `,
+
+  // 14. 紅白錦鯉 — Elegant pearl-white Kohaku koi with bold vermilion patches, whiskers & flowing fins
+  koi: `
+    <path d="M17 34 C9 24, 5 26, 8 34 C5 42, 9 44, 17 37 Z" fill="#fffaf5" ${S}/>
+    <path d="M24 23 C31 15, 40 16, 43 23 Z" fill="#fffaf5" ${S_THIN}/>
+    <path d="M37 39 C31 46, 33 50, 41 46 Z" fill="#fffaf5" ${S_THIN}/>
+    <path d="M16 34 C20 21, 41 19, 55 29 C58 32, 57 36, 54 39 C42 46, 22 46, 16 34 Z" fill="#fffdf9" ${S}/>
+    <path d="M46 25 C49 23, 53 25, 53 29 C50 31, 46 30, 46 25 Z" fill="#f94144"/>
+    <path d="M29 22 C35 20, 42 23, 41 31 C37 35, 29 33, 28 27 Z" fill="#f94144"/>
+    <path d="M18 30 C21 28, 25 30, 24 36 C21 38, 17 35, 18 30 Z" fill="#f94144"/>
+    <path d="M55 35 Q59 38 60 42 M54 37 Q56 41 55 44" fill="none" stroke="#d9534f" stroke-width="1.5" stroke-linecap="round"/>
+    <circle cx="50" cy="31" r="2.3" fill="#1c1816"/>
+    <circle cx="50.7" cy="30.3" r="0.8" fill="#ffffff"/>
+  `,
+
+  // 15. 黃金錦鯉 — Legendary radiant molten-gold koi with golden aura, sparkles & flowing gossamer veil fins
+  golden_koi: `
+    <circle class="svg-glow" cx="32" cy="33" r="23" fill="#ffd166" opacity="0.28"/>
+    <path d="M17 33 C8 20, 4 24, 9 34 C4 44, 8 48, 17 37 Z" fill="#ffdf70" ${S}/>
+    <path d="M23 23 C31 13, 41 14, 44 23 Z" fill="#ffe587" ${S_THIN}/>
+    <path d="M37 39 C30 48, 33 52, 42 46 Z" fill="#ffe587" ${S_THIN}/>
+    <path d="M16 34 C20 20, 42 18, 55 29 C58 32, 57 36, 54 39 C42 46, 22 46, 16 34 Z" fill="#ffca3a" ${S}/>
+    <ellipse cx="36" cy="27" rx="9" ry="3.5" fill="#fff6bd" opacity="0.72" transform="rotate(-6 36 27)"/>
+    <path d="M27 31 Q30 34 27 37 M33 30 Q36 33 33 36 M39 30 Q42 33 39 36" fill="none" stroke="#c98810" stroke-width="1.4" stroke-linecap="round"/>
+    <path d="M55 35 Q59 38 60 42 M54 37 Q56 41 55 44" fill="none" stroke="#c98810" stroke-width="1.6" stroke-linecap="round"/>
+    <circle cx="50" cy="31" r="2.4" fill="#1e160d"/>
+    <circle cx="50.7" cy="30.3" r="0.8" fill="#ffffff"/>
+    <polygon points="15,13 16.5,16 19.5,17 16.5,18 15,21 13.5,18 10.5,17 13.5,16" fill="#fff099"/>
+    <polygon points="52,13 53,15 55,16 53,17 52,19 51,17 49,16 51,15" fill="#fff099"/>
+  `,
+
+  // 16. 櫻花甜蝦 — Translucent sakura-pink arched shrimp with tail fan, tiny legs & sweeping whisker antennae
+  sakura_shrimp: `
+    <path d="M47 21 C54 11, 58 10, 61 13 M49 23 C57 18, 60 22, 59 29" fill="none" stroke="#e86f93" stroke-width="1.7" stroke-linecap="round"/>
+    <path d="M35 37 L33 45 M39 37 L39 45 M43 35 L46 43" fill="none" stroke="#e86f93" stroke-width="2" stroke-linecap="round"/>
+    <path d="M16 44 L8 42 L11 50 L17 48 Z" fill="#ff7ca3" ${S_THIN}/>
+    <path d="M14 44 C13 28, 26 16, 44 19 C50 20, 53 26, 48 31 C42 36, 33 34, 28 38 C24 41, 22 45, 16 46 Z" fill="#ffa8c3" ${S}/>
+    <path d="M23 26 L28 34 M30 21 L33 32 M38 20 L39 32" stroke="#e86f93" stroke-width="2.1" stroke-linecap="round"/>
+    <ellipse cx="36" cy="24" rx="5" ry="2.2" fill="#ffe6ef" opacity="0.65" transform="rotate(-14 36 24)"/>
+    <circle cx="47.5" cy="23.5" r="2.4" fill="#1e181a"/>
+    <circle cx="48.2" cy="22.8" r="0.8" fill="#ffffff"/>
+  `,
+
+  // 17. 紅腹食人魚 — Stocky silver-grey diamond piranha with blazing crimson belly & fierce toothy underbite
+  piranha: `
+    <path d="M16 33 L6 22 L10 34 L6 46 L16 36 Z" fill="#5e6973" ${S}/>
+    <path d="M22 23 L29 14 L38 21 Z" fill="#5e6973" ${S_THIN}/>
+    <path d="M22 44 L29 52 L39 46 Z" fill="#c92323" ${S_THIN}/>
+    <path d="M15 34 C20 18, 40 16, 52 25 L56 32 L51 34 L57 37 C54 44, 42 49, 28 47 C20 45, 16 40, 15 34 Z" fill="#8d9aa6" ${S}/>
+    <path d="M22 39 C30 47, 45 47, 54 39 C51 36, 47 35, 42 36 C34 38, 27 38, 22 39 Z" fill="#d62828"/>
+    <polygon points="50,33 52,35.8 54,33 55.5,36 52.5,36.5" fill="#ffffff"/>
+    <path d="M39 39 L33 45 L40 44 Z" fill="#e63946" ${S_THIN}/>
+    <circle cx="46.5" cy="27.5" r="3" fill="#ff4d4d" ${S_THIN}/>
+    <circle cx="47.2" cy="27.5" r="1.4" fill="#181212"/>
+  `,
+
+  // 18. 銀龍魚 — Aristocratic elongated metallic silver ribbon arowana with upturned jaw & twin chin barbels
+  arowana: `
+    <path d="M12 31 C6 25, 4 30, 6 35 C4 40, 8 42, 14 37 Z" fill="#c5dce6" ${S}/>
+    <path d="M13 26 C21 21, 31 22, 34 26 Z" fill="#b8d4e0" ${S_THIN}/>
+    <path d="M13 38 C22 44, 34 44, 39 39 Z" fill="#b8d4e0" ${S_THIN}/>
+    <path d="M11 33 C16 25, 42 23, 56 26 L58 31 C55 37, 43 40, 26 39 C17 39, 12 37, 11 33 Z" fill="#e2eff5" ${S}/>
+    <path d="M22 30 Q25 33 22 36 M28 29 Q31 32 28 35 M34 29 Q37 32 34 35 M40 29 Q43 32 40 35" fill="none" stroke="#99bac9" stroke-width="1.3" stroke-linecap="round"/>
+    <path d="M46 37 L38 47 L46 43 Z" fill="#d3e8f0" ${S_THIN}/>
+    <path d="M57 31 L62 29 M56 33 L61 34" fill="none" stroke="#7d9eae" stroke-width="1.8" stroke-linecap="round"/>
+    <circle cx="51.5" cy="29.5" r="2.4" fill="#fffdf6" ${S_THIN}/>
+    <circle cx="52.1" cy="29.5" r="1.2" fill="#161b20"/>
+  `,
+
+  // 19. 巨骨舌魚 — Colossal prehistoric emerald-armored arapaima grading into fiery crimson-red tail
+  arapaima: `
+    <path d="M11 30 C5 26, 4 36, 11 38 Z" fill="#c92a2a" ${S}/>
+    <path d="M12 27 C18 21, 27 22, 31 26 Z" fill="#b82828" ${S_THIN}/>
+    <path d="M12 39 C18 44, 27 44, 31 40 Z" fill="#b82828" ${S_THIN}/>
+    <path d="M10 34 C14 25, 38 23, 57 29 C59 31, 59 34, 56 36 C43 42, 19 42, 10 34 Z" fill="#3b6e5c" ${S}/>
+    <path d="M10 34 C13 28, 22 25, 31 26 C29 31, 29 36, 31 40 C21 41, 13 39, 10 34 Z" fill="#d63031"/>
+    <path d="M22 29 Q25 32 22 35 M28 28 Q31 32 28 36 M35 28 Q38 32 35 36 M42 29 Q45 32 42 35" fill="none" stroke="#1f3d32" stroke-width="1.5" stroke-linecap="round"/>
+    <path d="M47 28 C45 31, 45 35, 47 38" fill="none" stroke="#1e382e" stroke-width="1.6" stroke-linecap="round"/>
+    <path d="M43 37 L37 43 L44 42 Z" fill="#4f8773" ${S_THIN}/>
+    <circle cx="53" cy="31" r="2.2" fill="#ffd166" ${S_THIN}/>
+    <circle cx="53.6" cy="31" r="1.1" fill="#181614"/>
+  `,
+
+  // 20. 溫泉金鱒 — Glowing warm amber-gold hot-spring trout with rosy horizontal stripe & dark parr spots
+  golden_trout: `
+    <circle class="svg-glow" cx="32" cy="33" r="21" fill="#f4a261" opacity="0.22"/>
+    <path d="M15 32 L6 23 L9 33 L6 43 L15 35 Z" fill="#e78c45" ${S}/>
+    <path d="M29 24 L35 16 L41 24 Z" fill="#f4a261" ${S_THIN}/>
+    <path d="M19 26 L22 23 L24 26 Z" fill="#f4a261" ${S_THIN}/>
+    <path d="M24 41 L30 47 L35 41 Z" fill="#f4a261" ${S_THIN}/>
+    <path d="M14 33 C20 22, 42 20, 56 30 C58 32, 57 35, 54 37 C41 44, 21 43, 14 33 Z" fill="#f4a261" ${S}/>
+    <path d="M18 33 C28 32, 42 32, 51 33" fill="none" stroke="#e65345" stroke-width="3.6" stroke-linecap="round" opacity="0.82"/>
+    <ellipse cx="26" cy="32.5" rx="1.6" ry="3.2" fill="#8f4518" opacity="0.72"/>
+    <ellipse cx="33" cy="32.5" rx="1.6" ry="3.4" fill="#8f4518" opacity="0.72"/>
+    <ellipse cx="40" cy="32.5" rx="1.6" ry="3.2" fill="#8f4518" opacity="0.72"/>
+    <path d="M40 37 L34 43 L41 42 Z" fill="#ffe6c7" ${S_THIN}/>
+    <circle cx="50.5" cy="30.5" r="2.5" fill="#fffdf5" ${S_THIN}/>
+    <circle cx="51.2" cy="30.5" r="1.3" fill="#1e1510"/>
+  `,
+
+  // 21. 提燈鮟鱇魚 — Deep-sea lantern anglerfish with gaping toothy underbite & glowing bioluminescent orb
+  anglerfish: `
+    <circle class="svg-glow" cx="55" cy="20" r="9.5" fill="#80ffdb" opacity="0.4"/>
+    <path d="M17 34 L7 26 C9 33, 9 39, 7 45 L17 39 Z" fill="#3a3e54" ${S}/>
+    <path d="M23 24 L27 18 L32 23 Z" fill="#3a3e54" ${S_THIN}/>
+    <path d="M42 24 C45 13, 53 11, 55 18" fill="none" stroke="#2e2118" stroke-width="2.4" stroke-linecap="round"/>
+    <circle cx="55" cy="20" r="4.2" fill="#9ef7ee" ${S_THIN}/>
+    <circle cx="55" cy="20" r="2" fill="#ffffff"/>
+    <path d="M16 36 C17 22, 34 19, 46 25 L52 33 L43 37 L53 38 C51 47, 36 51, 24 46 C18 44, 16 40, 16 36 Z" fill="#4a4e69" ${S}/>
+    <path d="M45 34 L46.5 31 L48 34 M48 34 L50 31 L51 34 M44 37 L46 40 L47.5 37 M48 37 L50 40 L52 37" fill="#ffffff" stroke="#2e2118" stroke-width="0.9"/>
+    <path d="M32 39 L26 44 L33 44 Z" fill="#686d8c" ${S_THIN}/>
+    <circle cx="43.5" cy="28" r="2.5" fill="#e0fbfc" ${S_THIN}/>
+    <circle cx="44" cy="28" r="1.1" fill="#181620"/>
+  `,
+
+  // 22. 藍槍魚 — Deep cobalt pelagic blue marlin with long spear bill, tall sickle dorsal & crescent tail
+  blue_marlin: `
+    <path d="M14 33 L4 18 L10 33 L4 48 L14 35 Z" fill="#163c6e" ${S}/>
+    <path d="M25 27 C30 13, 41 12, 44 25 C39 24, 31 26, 25 27 Z" fill="#1b4d8c" ${S}/>
+    <path d="M45 28 L61 29 L46 33 Z" fill="#14335c" ${S_THIN}/>
+    <path d="M13 34 C19 25, 36 22, 48 28 C49 31, 48 35, 44 37 C34 41, 19 40, 13 34 Z" fill="#1d4e89" ${S}/>
+    <path d="M17 35 C25 39, 38 39, 45 35 C37 36, 25 36, 17 35 Z" fill="#dcebf7"/>
+    <path d="M26 27 L25 35 M31 26 L30 35 M36 26 L35 35" stroke="#78c2ff" stroke-width="1.8" stroke-linecap="round"/>
+    <path d="M38 36 L29 45 L36 41 Z" fill="#235fa6" ${S_THIN}/>
+    <circle cx="43.5" cy="30.5" r="2.2" fill="#fffdf6" ${S_THIN}/>
+    <circle cx="44" cy="30.5" r="1.1" fill="#121824"/>
+  `,
+
+  // 23. 帝王鮭 — Powerful migrating terracotta-red king salmon with hooked kype jaw & spotted back
+  king_salmon: `
+    <path d="M15 32 L5 22 L9 33 L5 44 L15 35 Z" fill="#5e7068" ${S}/>
+    <path d="M28 23 L34 15 L40 23 Z" fill="#4f665d" ${S_THIN}/>
+    <path d="M19 26 L22 22 L24 26 Z" fill="#c8553d" ${S_THIN}/>
+    <path d="M23 41 L29 47 L34 41 Z" fill="#b34832" ${S_THIN}/>
+    <path d="M14 33 C20 20, 42 19, 56 28 C59 30, 58 33, 55 34 L50 34 L56 36 C56 39, 51 41, 46 41 C34 44, 20 42, 14 33 Z" fill="#c8553d" ${S}/>
+    <path d="M18 29 C26 22, 42 21, 53 27 C42 27, 27 28, 18 29 Z" fill="#446358"/>
+    <circle cx="24" cy="26" r="1.2" fill="#1e2924"/>
+    <circle cx="30" cy="24" r="1.3" fill="#1e2924"/>
+    <circle cx="37" cy="24" r="1.2" fill="#1e2924"/>
+    <circle cx="10" cy="28" r="1.1" fill="#1e2924"/>
+    <circle cx="10" cy="38" r="1.1" fill="#1e2924"/>
+    <path d="M40 37 L34 43 L41 42 Z" fill="#d97159" ${S_THIN}/>
+    <circle cx="49.5" cy="30" r="2.4" fill="#fffdf6" ${S_THIN}/>
+    <circle cx="50.1" cy="30" r="1.2" fill="#181614"/>
+  `,
+
+  // 24. 冰海天使 — Ethereal translucent ice-cyan sea angel with glowing rosy heart core, earlets & angel wings
+  sea_angel: `
+    <circle class="svg-glow" cx="32" cy="32" r="22" fill="#90f1ff" opacity="0.28"/>
+    <path d="M27 29 C16 20, 6 22, 8 30 C10 36, 19 37, 27 35 Z" fill="#bdf8ff" fill-opacity="0.88" ${S}/>
+    <path d="M37 29 C48 20, 58 22, 56 30 C54 36, 45 37, 37 35 Z" fill="#bdf8ff" fill-opacity="0.88" ${S}/>
+    <path d="M27 16 L24 9 L30 14 M37 16 L40 9 L34 14" fill="#d4fbff" ${S_THIN}/>
+    <path d="M32 13 C38 13, 41 20, 39 32 C38 43, 35 53, 32 57 C29 53, 26 43, 25 32 C23 20, 26 13, 32 13 Z" fill="#a8f9ff" ${S}/>
+    <path d="M32 27 C29 24, 26 27, 29 31 L32 35 L35 31 C38 27, 35 24, 32 27 Z" fill="#ff758f"/>
+    <ellipse cx="32" cy="40" rx="2.5" ry="6" fill="#ffffff" opacity="0.55"/>
+    <circle cx="29.5" cy="19" r="1.4" fill="#2e2118"/>
+    <circle cx="34.5" cy="19" r="1.4" fill="#2e2118"/>
+    <polygon class="svg-glow" points="15,15 16,17.5 18.5,18.5 16,19.5 15,22 14,19.5 11.5,18.5 14,17.5" fill="#ffffff"/>
+  `,
+
+  // 25. 翻車魚 — Tall flat circular silver-slate ocean sunfish with huge top/bottom fins & scalloped rudder tail
+  ocean_sunfish: `
+    <path d="M22 23 L17 6 L28 9 L30 22 Z" fill="#778499" ${S}/>
+    <path d="M22 42 L17 58 L28 55 L30 43 Z" fill="#778499" ${S}/>
+    <path d="M18 22 C13 24, 14 28, 12 32 C14 36, 13 40, 18 43 C24 48, 42 48, 51 39 C55 35, 55 29, 51 25 C42 17, 25 17, 18 22 Z" fill="#95a3b8" ${S}/>
+    <path d="M22 36 C29 44, 43 44, 49 36 C42 39, 30 39, 22 36 Z" fill="#dce3ed"/>
+    <circle cx="30" cy="27" r="2.6" fill="#c7d2e0" opacity="0.65"/>
+    <circle cx="25" cy="34" r="2.2" fill="#c7d2e0" opacity="0.65"/>
+    <path d="M38 34 C35 32, 33 36, 37 38 C39 38, 40 35, 38 34 Z" fill="#b4c1d4" ${S_THIN}/>
+    <circle cx="45" cy="29.5" r="3" fill="#fffdf6" ${S_THIN}/>
+    <circle cx="45.6" cy="29.5" r="1.5" fill="#181b21"/>
+    <ellipse cx="53.5" cy="33" rx="1.8" ry="2.4" fill="#4f5a6b" ${S_THIN}/>
+  `,
+
+  // 26. 鯨鯊 — Colossal starry-spotted slate-blue whale shark with wide blunt snout & tall shark tail
+  whale_shark: `
+    <path d="M15 33 L6 19 L11 33 L7 43 L16 36 Z" fill="#2c4563" ${S}/>
+    <path d="M27 24 L33 13 L39 23 Z" fill="#2c4563" ${S}/>
+    <path d="M14 34 C19 23, 39 20, 56 27 C59 29, 59 35, 56 38 C44 43, 22 42, 14 34 Z" fill="#355070" ${S}/>
+    <path d="M18 36 C28 41, 45 41, 56 36 C46 37, 29 37, 18 36 Z" fill="#edf4fa"/>
+    <path d="M40 36 L30 47 L41 42 Z" fill="#2c4563" ${S}/>
+    <circle cx="24" cy="30" r="1.4" fill="#eef6fc"/>
+    <circle cx="29" cy="28" r="1.5" fill="#eef6fc"/>
+    <circle cx="34" cy="27" r="1.5" fill="#eef6fc"/>
+    <circle cx="39" cy="27" r="1.5" fill="#eef6fc"/>
+    <circle cx="44" cy="28" r="1.4" fill="#eef6fc"/>
+    <circle cx="28" cy="33" r="1.3" fill="#eef6fc"/>
+    <circle cx="34" cy="32" r="1.4" fill="#eef6fc"/>
+    <circle cx="40" cy="32" r="1.4" fill="#eef6fc"/>
+    <path d="M47 30 L47 35 M49.5 30.5 L49.5 35" stroke="#1b2c40" stroke-width="1.3" stroke-linecap="round"/>
+    <circle cx="53.5" cy="31.5" r="2" fill="#ffffff" ${S_THIN}/>
+    <circle cx="54" cy="31.5" r="1" fill="#141b24"/>
+  `,
+
+  // 27. 水晶水母 — Luminous starlight crystal jellyfish with glowing faceted cyan bell & trailing tentacles
+  crystal_jelly: `
+    <circle class="svg-glow" cx="32" cy="26" r="21" fill="#72efdd" opacity="0.28"/>
+    <path d="M21 35 C18 43, 21 50, 17 57 M27 36 C25 45, 29 51, 26 59 M33 36 C35 45, 31 52, 35 59 M39 36 C42 44, 38 51, 42 57 M44 35 C47 42, 44 48, 48 54" fill="none" stroke="#64dfdf" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="M29 35 C27 42, 31 48, 29 54 M35 35 C37 42, 33 48, 36 54" fill="none" stroke="#c8b6ff" stroke-width="2.6" stroke-linecap="round"/>
+    <path d="M13 32 C13 16, 22 10, 32 10 C42 10, 51 16, 51 32 C47 36, 42 33, 38 36 C34 33, 30 33, 26 36 C22 33, 17 36, 13 32 Z" fill="#72efdd" ${S}/>
+    <ellipse cx="32" cy="24" rx="8" ry="6" fill="#d9c6ff" opacity="0.72"/>
+    <path d="M32 11 L32 33 M23 14 C21 21, 21 28, 22 34 M41 14 C43 21, 43 28, 42 34" fill="none" stroke="#e0fffb" stroke-width="1.6" stroke-linecap="round" opacity="0.8"/>
+    <circle cx="15" cy="14" r="1.6" fill="#e0fffb"/>
+    <circle cx="50" cy="16" r="1.4" fill="#c8b6ff"/>
+  `,
+
+  // 28. 黑鮪魚 — Muscular torpedo bluefin tuna with midnight-navy back, yellow finlets & sharp crescent tail
+  blue_tuna: `
+    <path d="M14 33 L5 19 L10 33 L5 47 L14 35 Z" fill="#1d3847" ${S}/>
+    <path d="M30 22 L36 14 L41 22 Z" fill="#1d3847" ${S_THIN}/>
+    <path d="M24 23 L27 18 L30 23 Z" fill="#ffd166" ${S_THIN}/>
+    <path d="M24 41 L27 46 L30 41 Z" fill="#ffd166" ${S_THIN}/>
+    <circle cx="20" cy="25" r="1.7" fill="#ffd166"/>
+    <circle cx="17" cy="27" r="1.5" fill="#ffd166"/>
+    <circle cx="20" cy="40" r="1.7" fill="#ffd166"/>
+    <circle cx="17" cy="38" r="1.5" fill="#ffd166"/>
+    <path d="M13 33 C19 20, 42 18, 57 30 C58 32, 58 35, 55 37 C42 45, 20 44, 13 33 Z" fill="#dce8f0" ${S}/>
+    <path d="M15 32 C21 21, 42 19, 56 30 C44 31, 27 32, 15 32 Z" fill="#223e54"/>
+    <path d="M40 35 L30 40 L39 40 Z" fill="#2c4f69" ${S_THIN}/>
+    <circle cx="50.5" cy="30.5" r="2.6" fill="#fffdf6" ${S_THIN}/>
+    <circle cx="51.2" cy="30.5" r="1.4" fill="#121820"/>
+  `,
+
+  // 29. 皇帶魚 — Legendary S-coiled silver ribbon oarfish with dramatic crimson head plume & full red dorsal crest
+  oarfish: `
+    <path d="M12 48 C8 35, 19 30, 30 37 C41 44, 52 38, 49 24 C47 18, 42 16, 36 17" fill="none" stroke="#e63946" stroke-width="12" stroke-linecap="round"/>
+    <path d="M12 48 C8 35, 19 30, 30 37 C41 44, 52 38, 49 24 C47 18, 42 16, 36 17" fill="none" stroke="#2e2118" stroke-width="9.5" stroke-linecap="round"/>
+    <path d="M12 48 C8 35, 19 30, 30 37 C41 44, 52 38, 49 24 C47 18, 42 16, 36 17" fill="none" stroke="#e4eef5" stroke-width="6.4" stroke-linecap="round"/>
+    <path d="M14 48 C18 55, 31 58, 46 54" fill="none" stroke="#e63946" stroke-width="7.2" stroke-linecap="round"/>
+    <path d="M14 48 C18 55, 31 58, 46 54" fill="none" stroke="#e4eef5" stroke-width="3.6" stroke-linecap="round"/>
+    <path d="M37 16 C39 8, 45 6, 48 9 M35 16 C34 7, 38 4, 42 6 M33 17 C29 9, 31 5, 34 6" fill="none" stroke="#e63946" stroke-width="2.6" stroke-linecap="round"/>
+    <path d="M29 22 C24 24, 21 28, 22 33" fill="none" stroke="#e63946" stroke-width="2.1" stroke-linecap="round"/>
+    <ellipse cx="33" cy="19" rx="7" ry="5" fill="#eef6fc" ${S}/>
+    <circle cx="30.5" cy="18.5" r="2.2" fill="#ffd166" ${S_THIN}/>
+    <circle cx="30" cy="18.5" r="1.1" fill="#181512"/>
+  `,
+
+  // 30. 腔棘魚 — Prehistoric steel-blue living fossil with misty white blotches, lobed limb-fins & 3-lobed tail
+  coelacanth: `
+    <path d="M16 32 L7 22 L11 30 L4 33 L11 36 L7 44 L16 36 Z" fill="#3a6b8c" ${S}/>
+    <path d="M27 23 L33 14 L38 22 Z" fill="#335f7d" ${S_THIN}/>
+    <path d="M18 25 L21 17 L26 24 Z" fill="#4f83a6" ${S_THIN}/>
+    <path d="M19 41 L22 49 L27 42 Z" fill="#4f83a6" ${S_THIN}/>
+    <path d="M29 42 L31 50 L36 43 Z" fill="#4f83a6" ${S_THIN}/>
+    <path d="M15 33 C20 20, 42 18, 56 29 C58 32, 57 36, 54 39 C42 46, 21 46, 15 33 Z" fill="#457b9d" ${S}/>
+    <path d="M44 25 C41 30, 41 36, 44 41" fill="none" stroke="#244257" stroke-width="1.8" stroke-linecap="round"/>
+    <circle cx="24" cy="29" r="2.1" fill="#d8edf7" opacity="0.85"/>
+    <circle cx="31" cy="26" r="2.3" fill="#d8edf7" opacity="0.85"/>
+    <circle cx="37" cy="29" r="2" fill="#d8edf7" opacity="0.85"/>
+    <circle cx="28" cy="36" r="1.9" fill="#d8edf7" opacity="0.85"/>
+    <circle cx="35" cy="37" r="2.1" fill="#d8edf7" opacity="0.85"/>
+    <path d="M42 36 C37 38, 35 44, 40 45 C43 45, 45 40, 42 36 Z" fill="#5e94b8" ${S_THIN}/>
+    <circle cx="50" cy="30" r="2.7" fill="#d8edf7" ${S_THIN}/>
+    <circle cx="50.7" cy="30" r="1.4" fill="#141e26"/>
   `
 };
 
@@ -562,8 +1020,8 @@ export function hasCustomCreatureIcon(creatureId) {
 }
 
 /**
- * Renders a species-specific vector icon for insects & reptiles (with silhouette support for locked dex entries),
- * or falls back cleanly to the creature's emoji for fish / unknown IDs.
+ * Renders a species-specific vector icon for all fish (30), insects (24), and reptiles (12)
+ * with silhouette support for locked encyclopedia entries, falling back to emoji only for unknown IDs.
  */
 export function renderCreatureIcon(creature, { size = 40, silhouette = false, inline = false, className = '' } = {}) {
   if (!creature) return '';

@@ -403,6 +403,8 @@ export class InteriorManager {
       this.museumExhibits.push({
         creature,
         mesh: built.group,
+        wingL: built.wingL,
+        wingR: built.wingR,
         tailMesh: built.tailMesh,
         kind: 'fish',
         cx,
@@ -615,6 +617,12 @@ export class InteriorManager {
           ex.mesh.position.set(nx, ex.baseY + Math.sin(time * 2 + ex.phase) * 0.12, nz);
           ex.mesh.rotation.y = Math.atan2(dx, dz);
           if (ex.tailMesh) ex.tailMesh.rotation.y = Math.sin(time * 8 + ex.phase) * 0.35;
+          if (ex.wingL && ex.wingR) {
+            const isWinged = ex.creature.id === 'manta_ray' || ex.creature.id === 'sea_angel';
+            const fl = Math.sin(time * (isWinged ? 3.8 : 6.2) + ex.phase) * (isWinged ? 0.38 : 0.22);
+            ex.wingL.rotation.z = fl;
+            ex.wingR.rotation.z = -fl;
+          }
         } else if (ex.kind === 'fly_bug') {
           ex.mesh.position.y = ex.baseY + Math.sin(time * 3.5 + ex.phase) * 0.2;
           ex.mesh.rotation.y = Math.sin(time * 0.9 + ex.phase) * 0.7 - Math.PI * 0.5;
