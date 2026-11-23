@@ -32,6 +32,7 @@ class BreezeArchipelagoGame {
     this.currentIslandId = 'main';
     this.cameraTarget = new THREE.Vector3(0, 2, 11);
     this.cameraDist = 17;
+    this.savedExteriorCameraYaw = 0;
     this.returnExteriorPos = { x: -14, z: 16, yaw: 0 };
 
     this._initRenderer();
@@ -239,6 +240,13 @@ class BreezeArchipelagoGame {
   }
 
   // ==================== Indoor Transitions & Furniture Placement ====================
+  _getActiveCameraYaw(isIndoors) {
+    if (isIndoors) {
+      return Math.max(-0.85, Math.min(0.85, this.input.cameraYaw));
+    }
+    return this.input.cameraYaw;
+  }
+
   _enterHouse() {
     if (this.fishSystem.isActive()) this.fishSystem.cancel();
     if (this.bugSystem.isTimingActive()) this.bugSystem.cancelTiming();
@@ -250,14 +258,21 @@ class BreezeArchipelagoGame {
       yaw: MAIN_LANDMARKS.house.facing
     };
 
+    const wasExterior = this.interiors.mode === 'exterior';
+    if (wasExterior) {
+      this.savedExteriorCameraYaw = this.input.cameraYaw;
+    }
     this.exteriorRoot.visible = false;
     this.bugSystem.hideAllLabels();
     const spawn = this.interiors.enterHouse(this.store);
+    this.input.cameraYaw = 0;
+    this.input.setCameraYawLimits(-0.85, 0.85);
     this.player.x = spawn.x;
     this.player.y = spawn.y;
     this.player.z = spawn.z;
     this.player.yaw = spawn.yaw;
     this.player.group.position.set(spawn.x, spawn.y, spawn.z);
+    this.cameraTarget.set(spawn.x, spawn.y + 1.4, spawn.z);
 
     this.toolBarEl.classList.add('hidden');
     this.decorateBarEl.classList.add('hidden');
@@ -277,14 +292,21 @@ class BreezeArchipelagoGame {
       yaw: MAIN_LANDMARKS.museum.facing
     };
 
+    const wasExterior = this.interiors.mode === 'exterior';
+    if (wasExterior) {
+      this.savedExteriorCameraYaw = this.input.cameraYaw;
+    }
     this.exteriorRoot.visible = false;
     this.bugSystem.hideAllLabels();
     const spawn = this.interiors.enterMuseum(this.store);
+    this.input.cameraYaw = 0;
+    this.input.setCameraYawLimits(-0.85, 0.85);
     this.player.x = spawn.x;
     this.player.y = spawn.y;
     this.player.z = spawn.z;
     this.player.yaw = spawn.yaw;
     this.player.group.position.set(spawn.x, spawn.y, spawn.z);
+    this.cameraTarget.set(spawn.x, spawn.y + 1.4, spawn.z);
 
     this.toolBarEl.classList.add('hidden');
     this.decorateBarEl.classList.add('hidden');
@@ -299,12 +321,16 @@ class BreezeArchipelagoGame {
     this.decorateBarEl.classList.add('hidden');
     this.toolBarEl.classList.remove('hidden');
 
+    this.input.setCameraYawLimits(null, null);
+    this.input.cameraYaw = this.savedExteriorCameraYaw;
+
     const ret = this.returnExteriorPos;
     this.player.x = ret.x;
     this.player.z = ret.z;
     this.player.y = getTerrainHeight(ret.x, ret.z);
     this.player.yaw = ret.yaw || 0;
     this.player.group.position.set(this.player.x, this.player.y, this.player.z);
+    this.cameraTarget.set(this.player.x, this.player.y + 1.4, this.player.z);
 
     this.hud.setIslandName('微風港灣');
     audio.playClick();
@@ -778,8 +804,9 @@ class BreezeArchipelagoGame {
     this.elapsed += dt;
 
     const modalLocked = !this.started || this.modals.isOpen();
-    const moveVec = modalLocked ? { x: 0, z: 0, mag: 0 } : this.input.getMoveVector();
     const isIndoors = this.interiors.mode !== 'exterior';
+    const activeCameraYaw = this._getActiveCameraYaw(isIndoors);
+    const moveVec = modalLocked ? { x: 0, z: 0, mag: 0 } : this.input.getMoveVector(activeCameraYaw);
 
     const moveLocked = modalLocked || this.fishSystem.isActive() || this.bugSystem.isTimingActive();
     const isSneaking = !isIndoors && !this.player.inBoat && this.input.isSneaking();
@@ -834,7 +861,7 @@ class BreezeArchipelagoGame {
       const desiredFocus = new THREE.Vector3(activePos.x, activePos.y + 1.4, activePos.z);
       this.cameraTarget.lerp(desiredFocus, Math.min(1, dt * 8));
 
-      const yaw = isIndoors ? Math.max(-0.85, Math.min(0.85, this.input.cameraYaw * 0.5)) : this.input.cameraYaw;
+      const yaw = activeCameraYaw;
       const pitch = isIndoors ? 0.68 : this.input.cameraPitch;
       const horiz = Math.cos(pitch) * this.cameraDist;
       const vert = Math.sin(pitch) * this.cameraDist;

@@ -4,6 +4,8 @@ export class InputSystem {
     this.moveY = 0; // -1..1 (forward/up negative in screen coords -> we normalize to +1 = forward)
     this.cameraYaw = 0;
     this.cameraPitch = 0.62; // cozy angled top-down
+    this.cameraYawMin = null;
+    this.cameraYawMax = null;
     this.isPrimaryHeld = false;
     this.primaryPointerId = null;
     this.sneakToggle = false;
@@ -53,6 +55,14 @@ export class InputSystem {
 
   setSneak(val) {
     this.sneakToggle = Boolean(val);
+  }
+
+  setCameraYawLimits(min = null, max = null) {
+    this.cameraYawMin = min;
+    this.cameraYawMax = max;
+    if (this.cameraYawMin !== null && this.cameraYawMax !== null) {
+      this.cameraYaw = Math.max(this.cameraYawMin, Math.min(this.cameraYawMax, this.cameraYaw));
+    }
   }
 
   /**
@@ -228,6 +238,9 @@ export class InputSystem {
       this.dragLastX = e.clientX;
       this.dragLastY = e.clientY;
       this.cameraYaw -= dx * 0.0062;
+      if (this.cameraYawMin !== null && this.cameraYawMax !== null) {
+        this.cameraYaw = Math.max(this.cameraYawMin, Math.min(this.cameraYawMax, this.cameraYaw));
+      }
       this.cameraPitch = Math.max(0.36, Math.min(0.95, this.cameraPitch + dy * 0.0032));
     });
 
@@ -352,7 +365,7 @@ export class InputSystem {
   /**
    * Computes camera-relative world movement vector { x, z, mag }.
    */
-  getMoveVector() {
+  getMoveVector(yaw = this.cameraYaw) {
     let sx = this.joyVec.x;
     let sy = this.joyVec.y;
 
@@ -367,9 +380,9 @@ export class InputSystem {
     const nx = sx / Math.hypot(sx, sy);
     const ny = sy / Math.hypot(sx, sy);
 
-    // Rotate screen vector by cameraYaw so "up" always moves away from camera
-    const cos = Math.cos(this.cameraYaw);
-    const sin = Math.sin(this.cameraYaw);
+    // Rotate screen vector by active camera yaw so "up" always moves away from camera
+    const cos = Math.cos(yaw);
+    const sin = Math.sin(yaw);
     const wx = nx * cos + ny * sin;
     const wz = -nx * sin + ny * cos;
 
